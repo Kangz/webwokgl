@@ -104,6 +104,9 @@ wok.ShaderProgram.prototype = {
     //Given a dict containing buffers, binds shader attributes to these buffers
     setAttributes: function(attributes){
         for(var attr in attributes){
+            if( !(attr in this.attributes) ){
+                continue;    
+            }
             attributes[attr].bind();
 
             var size = this.glTypeSize(this.attributes[attr].type) * this.attributes[attr].arraySize
@@ -192,13 +195,10 @@ wok.ShaderProgram.prototype = {
             var toSet = uniforms[uni];
 
             //If the uniform is an array value the function takes an array of values
-            //However WebGL needs a single array of float so we concat everything
-            //There is a special case for matrix
+            //Making sure WebGL gets what it wants
             var arrayArg = []
             if(uniInfo.arraySize > 1){
-                for(var i=0; i<toSet.length; i++){
-                    arrayArg.concat(toSet[i]);
-                }
+                toSet = wok.utils.concatArray(arrayArg);
             }else{
                 if(toSet.length){
                     arrayArg = toSet;
@@ -210,11 +210,11 @@ wok.ShaderProgram.prototype = {
             //Warning !!! GL functions need to be called with this = gl
             //Make the actual call to the GL depending on the uniform type
             if(setterInfo.type == "int"){
-                setterInfo.setter.call(gl, uniInfo.handle, new WebGLIntArray(arrayArg));
+                setterInfo.setter.call(this.gl, uniInfo.handle, new WebGLIntArray(arrayArg));
             }else if(setterInfo.type == "float"){
-                setterInfo.setter.call(gl, uniInfo.handle, new Float32Array(arrayArg));
+                setterInfo.setter.call(this.gl, uniInfo.handle, new Float32Array(arrayArg));
             }else{
-                setterInfo.setter.call(gl, uniInfo.handle, false, new Float32Array(arrayArg));
+                setterInfo.setter.call(this.gl, uniInfo.handle, false, new Float32Array(arrayArg));
             }
             
         }

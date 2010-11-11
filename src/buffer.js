@@ -1,24 +1,14 @@
 //Represents a WebGL ArrayBuffer
 //The constructor takes a usage and a data array
 wok.ArrayBuffer = function(usage){
-    var data = [];
-    for(var i=1; i<arguments.length; i++){ //Put this in util ?
-        data = data.concat(arguments[i]);
-    }
-
-    return new this.gl.Buffer(usage, gl.ARRAY_BUFFER, data)
+    return new this.gl.Buffer(usage, this.gl.ARRAY_BUFFER, wok.utils.concatArray(arguments, 1));
 }
 
 
 //Represents a WebGL ElementBuffer
 //The constructor takes a usage and a data array
 wok.ElementBuffer = function(usage){
-    var data = [];
-    for(var i=1; i<arguments.length; i++){ //Put this in util ?
-        data = data.concat(arguments[i]);
-    }
-
-    return new this.gl.Buffer(usage, gl.ELEMENT_ARRAY_BUFFER, data)
+    return new this.gl.Buffer(usage, this.gl.ELEMENT_ARRAY_BUFFER, wok.utils.concatArray(arguments, 1))
 }
 
 
@@ -26,18 +16,18 @@ wok.ElementBuffer = function(usage){
 //The constructor takes a usage a buffertype and a data array
 wok.Buffer = function(usage, type, data){
 
-    var buffer = this.gl.createBuffer();
-    wok.instance(buffer, this);
-
     if(!usage){
         alert("Buffer needs a usage");
         return null;
     }
 
+    var buffer = this.gl.createBuffer();
+    wok.instance(buffer, this);
+
     buffer.usage = usage;
     buffer.type = type;
 
-    if(data.length > 0){
+    if(data){
         buffer.internalFeed(data);
     }
 
@@ -49,11 +39,7 @@ wok.Buffer.prototype = {
 
     //Feed data to be put in the buffer
     feed: function(){
-        var data = [];
-        for(var i=0; i<arguments.length; i++){
-            data = data.concat(arguments[i]);
-        }
-        this.internalFeed(data);
+        this.internalFeed(wok.utils.concatArray(arguments));
     },
 
     //returns true if the buffer is a Buffer
@@ -63,19 +49,19 @@ wok.Buffer.prototype = {
 
     //returns true if the buffer is an ArrayBuffer
     isArrayBuffer: function(){
-        return this.type==gl.ARRAY_BUFFER;
+        return this.type==this.gl.ARRAY_BUFFER;
     },    
 
     //returns true if the buffer is an ElementBuffer
     isElementBuffer: function(){
-        return this.type==gl.ELEMENT_ARRAY_BUFFER;
+        return this.type==this.gl.ELEMENT_ARRAY_BUFFER;
     },
 
     //Feed the data to the gl BUffer
     internalFeed: function(data){
         this.bind();
 
-        var arrayType = this.type == gl.ARRAY_BUFFER ? Float32Array : Uint16Array;
+        var arrayType = this.type == this.gl.ARRAY_BUFFER ? Float32Array : Uint16Array;
         this.gl.bufferData(this.type, new arrayType(data), this.usage);
     },
 

@@ -40,7 +40,7 @@ var wok = {
 
     /*
     We need wok to encapsulate every gl context. However we can't just copy every wok attribute
-    in th gl as many classes need to use context specific commands (in facts every context command
+    in the gl as many classes need to use context specific commands (in facts every context command
     is context-specific). 
     Wok's attribute are simply referenced, class are encapsulated in a special proxyClass so that
     this.gl points to the right context.  Modules are treated recursively.
@@ -51,6 +51,7 @@ var wok = {
         obj.gl = context;
         
         //We're done with attributes
+        //FIXME most of them are not needed on the gl object
         for(attr in module)
             obj[attr] = module[attr];
         
