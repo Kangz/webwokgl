@@ -121,7 +121,7 @@ FlyingBox.prototype = {
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 
         //Compute the transformations
-        var persp = mat4.perspective(45, 480.0/480.0, 0.001, 1000.0);
+        var persp = mat4.perspective(45, 1, 0.001, 1000.0);
 
         var modelView = mat4.lookAt([2.5, 1.5, 0], [0, 0, 0], [0, 1, 0]);
         mat4.rotateY(modelView, framecount * this.angularSpeed);
