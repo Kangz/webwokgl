@@ -54,21 +54,31 @@ var FlyingBox = function(canvas){
         stack: "canvas",
     });
 
-    //Get this canvas' specific wok context
-    this.gl = wok.initGL($("#"+canvas)[0]);
+    //Get this canvas' specific wok context and give startup options
+    this.gl = wok.initGL($("#"+canvas)[0], {
+
+        //Basic setup
+        clearColor: [0.0, 0.0, 0.0, 0.0],
+        clearDepth: 1000.0,
+        depthTest: true,
+        depthFunc: "<=",
+
+        //set up logging
+        info: function(msg){
+                $("#logs")[0].innerHTML += "\n\n-----------> INFO <-----------\n" + msg;
+            },
+        warn: function(msg){
+                $("#logs")[0].innerHTML += "\n\n-----------> WARN <-----------\n" + msg;
+            },
+        error: function(msg){
+                $("#logs")[0].innerHTML += "\n\n-----------> ERROR <-----------\n" + msg;
+            }
+    });
     
     if(!this.gl){
         alert("WTF NO GL!!!!");
         return;
     }
-
-    //Some basic setup
-    this.gl.setOptions({
-        clearColor: [0.0, 0.0, 0.0, 0.0],
-        clearDepth: 1000.0,
-        depthTest: true,
-        depthFunc: this.gl.LEQUAL
-    });
     
     //Build the shader program from the 2 script elements
     this.shaderProgram = new this.gl.ShaderProgram(
@@ -105,7 +115,7 @@ var FlyingBox = function(canvas){
         2, 3, 6,  6, 3, 7,  // top
         4, 5, 0,  0, 5, 1   // bottom
     ]);
-    
+
     //Shows the boxes are actually different
     this.angularSpeed = Math.random()*0.2 - 0.1;
 }

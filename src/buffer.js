@@ -17,7 +17,7 @@ wok.ElementBuffer = function(usage){
 wok.Buffer = function(usage, type, data){
 
     if(!usage){
-        alert("Buffer needs a usage");
+        this.gl.error("A Buffer need a usage")
         return null;
     }
 
@@ -59,6 +59,7 @@ wok.Buffer.prototype = {
 
     //Feed the data to the gl BUffer
     internalFeed: function(data){
+        this.gl.info("Uploading " + data.length + " elements of data to a buffer")
         this.bind();
 
         var arrayType = this.type == this.gl.ARRAY_BUFFER ? Float32Array : Uint16Array;

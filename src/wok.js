@@ -8,8 +8,19 @@ var wok = {
     ],
     modules: [],
 
+    //Provides callback for logging
+    info: function(){},
+    warn: function(){},
+    error: function(){},
+
+    //Convenient tables
+    stringToDepthFunc: {},
+    //Store information about each opengl Type (size, uniform setter, type etc ...)
+    glType: {},
+
+
     //Create a GL context from a context and encapsulate it within wok
-    initGL: function(canvas){
+    initGL: function(canvas, options){
         var gl = null;
         
         try{
@@ -24,16 +35,28 @@ var wok = {
             }
         }
 
-        if(gl){ //the spec of Typed Arrays changed recently :
-            if(!Float32Array){
-                Float32Array = WebGLFloatArray;
-            }
-            if(!Uint16Array){
-                Uint16Array= WebGLUnsignedShortArray;
-            }
+        if(!gl){
+            return null
+        }
+
+        //the spec of Typed Arrays changed recently :
+        if(!Float32Array){
+            Float32Array = WebGLFloatArray;
+        }
+        if(!Uint16Array){
+            Uint16Array= WebGLUnsignedShortArray;
         }
 
         wok.extendModule(gl, wok, gl);
+
+        //Initialise the convenient tables ;)
+        //FIXME: share most things between contexts to avoid calculation ?
+        gl.initConvenientTables();
+        
+        if(arguments.length > 1)
+            gl.setOptions(options);
+
+        gl.info("Created a new context")
         
         return gl;
     },
@@ -80,7 +103,7 @@ var wok = {
 /*        for(var i=0; i<module.modules.length; i++){
             obj[module.modules[i]] = {};
             wok.extendModule(obj[module.modules[i]], module[module.modules[i]], webgl);
-        }*/
+        }*/ 
     },
 
     //Decorate a WebGL object with a class to have it act like an instance of that class
@@ -97,17 +120,81 @@ var wok = {
     setOptions: function(opt){
         var gl = this.gl; 
 
-        if(opt["clearColor"] !== undefined)
-            gl.clearColor.apply(gl, opt["clearColor"]);
-            
-        if(opt["clearDepth"] !== undefined)
-            gl.clearDepth(opt["clearDepth"]);
-
-        if(opt["depthFunc"] !== undefined)
-            gl.depthFunc(opt["depthFunc"]);        
-                
-        if(opt["depthTest"] !== undefined)
-            if(opt["depthTest"]) gl.enable(gl.DEPTH_TEST);
-            else gl.disable(gl.DEPTH_TEST);
+        for(option in opt){
+            if(option in wok.options){
+                wok.options[option](gl, opt[option]);
+            }else{
+                gl.warn("Invalid option name: " + option);
+            }
+        }
+    },
+    
+    //Build up some table so as to conveniently us opengl constants/types
+    initConvenientTables: function(){
+        this.glType[this.INT] = {
+            type: "int",
+            setter: this.uniform1iv,
+            size: 1
+        };
+        this.glType[this.INT_VEC2] = {
+            type: "int",
+            setter: this.uniform2iv,
+            size: 2
+        };
+        this.glType[this.INT_VEC3] = {
+            type: "int",
+            setter: this.uniform3iv,
+            size: 3
+        };
+        this.glType[this.INT_VEC4] = {
+            type: "int",
+            setter: this.uniform4iv,
+            size: 4
+        };
+        this.glType[this.FLOAT] = {
+            type: "float",
+            setter: this.uniform1fv,
+            size: 1
+        };
+        this.glType[this.FLOAT_VEC2] = {
+            type: "float",
+            setter: this.uniform2fv,
+            size: 2
+        };
+        this.glType[this.FLOAT_VEC3] = {
+            type: "float",
+            setter: this.uniform3fv,
+            size: 3
+        };
+        this.glType[this.FLOAT_VEC4] = {
+            type: "float",
+            setter: this.uniform4fv,
+            size: 4
+        };
+        this.glType[this.FLOAT_MAT2] = {
+            type: "matrix",
+            setter: this.uniformMatrix2fv,
+            size: 4
+        };
+        this.glType[this.FLOAT_MAT3] = {
+            type: "matrix",
+            setter: this.uniformMatrix3fv,
+            size: 9
+        };
+        this.glType[this.FLOAT_MAT4] = {
+            type: "matrix",
+            setter: this.uniformMatrix4fv,
+            size: 16
+        };
+        
+        this.stringToDepthFunc["never"] = this.NEVER;
+        this.stringToDepthFunc["always"] = this.always;
+        this.stringToDepthFunc["<"] = this.LESS;
+        this.stringToDepthFunc["<="] = this.LEQUAL;
+        this.stringToDepthFunc["=="] = this.stringToDepthFunc["="] = this.EQUAL; //will help some
+        this.stringToDepthFunc[">"] = this.GREATER;
+        this.stringToDepthFunc[">="] = this.GEQUAL;
+        this.stringToDepthFunc["!="] = this.NOTEQUAL;
+        
     }
 };
