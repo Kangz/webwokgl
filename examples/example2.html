@@ -1,0 +1,65 @@
+<html>
+    <head>
+         <title>Wok Example 2 : Textures</title>
+         <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+         <script type="text/javascript" src="../lib/jquery.js"></script>
+         
+        <!-- Wok -->
+        
+        <script src="../lib/glMatrix.js" type="text/javascript"></script>
+        <script src="../src/wok.js" type="text/javascript"></script>
+        <script src="../src/options.js" type="text/javascript"></script>
+        <script src="../src/shader.js" type="text/javascript"></script>
+        <script src="../src/utils.js" type="text/javascript"></script>
+        <script src="../src/buffer.js" type="text/javascript"></script>
+        <script src="../src/texture.js" type="text/javascript"></script>
+
+        <!-- Example specific script -->
+
+        <script type="text/javascript" src="example2.js"></script>
+        
+        <script type="text/javascript">
+            $(document).ready(function(){
+                example.init();
+            });
+        </script>
+
+        <!-- Fragment shader program -->
+
+        <script id="shader-fs" type="x-shader/x-fragment">
+            precision highp float; //some drivers need this
+            varying vec2 vTexCoord;
+            uniform sampler2D uSampler;
+            void main(void) {
+                gl_FragColor = texture2D(uSampler, vec2(vTexCoord.s, vTexCoord.t));
+            }
+        </script>
+
+        <!-- Vertex shader program -->
+    
+        <script id="shader-vs" type="x-shader/x-vertex">
+            attribute vec2 aPosition;
+            attribute vec2 aTexCoord;
+            
+            uniform mat4 uMVMatrix;
+            uniform mat4 uMVPMatrix;
+    
+            varying vec2 vTexCoord;
+      
+            void main(void){
+                vTexCoord = aTexCoord;
+                gl_Position = uMVPMatrix * vec4(aPosition, 0.0, 1.0);
+            }
+        </script>
+    </head>
+
+    <body>
+        <img id="brick-texture" src="assets/brick_wall_512x512.jpg" style="display: none;"></img>
+        <canvas id="canvas" width="800" height="600">
+            Your browser doesn't appear to support the HTML5 <code>&lt;canvas&gt;</code> element.
+        </canvas>
+        <p>LOG</p>
+        <textarea id="logs" style="width: 600px; height: 200px"></textarea>        
+    </body>
+</html>

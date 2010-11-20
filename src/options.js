@@ -25,6 +25,12 @@ wok.options = {
     depthTest: function(gl, value){
         if(value) gl.enable(gl.DEPTH_TEST);
         else gl.disable(gl.DEPTH_TEST);   
+    },
+    texture: function(gl, value){
+        if(value) gl.enable(gl.TEXTURE_2D);
+        else gl.disable(gl.TEXTURE_2D);   
+    },
+    webGLFlipY: function(gl, value){
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, value);
     }
 }
-

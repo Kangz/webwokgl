@@ -4,7 +4,8 @@ var wok = {
     classes: [
         "ArrayBuffer", "ElementBuffer", "Buffer",
         "Shader", "FragmentShader", "VertexShader",
-        "ShaderProgram"
+        "ShaderProgram",
+        "Texture"
     ],
     modules: [],
 
@@ -44,17 +45,20 @@ var wok = {
             Float32Array = WebGLFloatArray;
         }
         if(!Uint16Array){
-            Uint16Array= WebGLUnsignedShortArray;
+            Uint16Array = WebGLUnsignedShortArray;
+        }
+        if(!Int32Array){
+            Int32Array = WebGLUnsignedShortArray;
         }
 
+        //Decorate the context with wok so as to be able to have multiple contexts    
         wok.extendModule(gl, wok, gl);
 
-        //Initialise the convenient tables ;)
-        //FIXME: share most things between contexts to avoid calculation ?
-        gl.initConvenientTables();
-        
+        //All the initialisation is done there
         if(arguments.length > 1)
-            gl.setOptions(options);
+            gl.initSelf(options);
+        else
+            gl.initSelf({});
 
         gl.info("Created a new context")
         
@@ -106,6 +110,20 @@ var wok = {
         }*/ 
     },
 
+    initSelf: function(options){
+        //Initialise the convenient tables ;)
+        //FIXME: share most things between contexts to avoid calculation ?
+        this.initConvenientTables();
+        
+        //These are default options
+        this.setOptions({
+            webGLFlipY: true
+        });
+        
+        //User-given options
+        this.setOptions(options);
+    },
+
     //Decorate a WebGL object with a class to have it act like an instance of that class
     instance: function(child, supertype){
         for(var property in supertype.prototype){
@@ -118,13 +136,11 @@ var wok = {
     },
     
     setOptions: function(opt){
-        var gl = this.gl; 
-
         for(option in opt){
             if(option in wok.options){
-                wok.options[option](gl, opt[option]);
+                wok.options[option](this, opt[option]);
             }else{
-                gl.warn("Invalid option name: " + option);
+                this.warn("Invalid option name: " + option);
             }
         }
     },
@@ -186,6 +202,11 @@ var wok = {
             setter: this.uniformMatrix4fv,
             size: 16
         };
+        this.glType[this.SAMPLER_2D] = {
+            type: "texture",
+            setter: this.uniform1iv,
+            size: 1
+        }
         
         this.stringToDepthFunc["never"] = this.NEVER;
         this.stringToDepthFunc["always"] = this.always;

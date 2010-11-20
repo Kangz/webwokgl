@@ -96,7 +96,7 @@ wok.ShaderProgram.prototype = {
     //Given a dict containing values, binds shader uniforms to these values
     setUniforms: function(uniforms){
 
-        for(var uni in uniforms){//TODO check if the uniform exists
+        for(var uni in uniforms){
 
             if( !(uni in this.uniforms) ){
                 continue;
@@ -105,12 +105,13 @@ wok.ShaderProgram.prototype = {
             var uniInfo = this.uniforms[uni]
             var typeInfo = this.gl.glType[uniInfo.type];
             var toSet = uniforms[uni];
+            var isTexture = false;
 
             //If the uniform is an array value the function takes an array of values
             //Making sure WebGL gets what it wants
             var arrayArg = []
             if(uniInfo.arraySize > 1){
-                toSet = wok.utils.concatArray(arrayArg);
+                arrayArg = wok.utils.concatArray(toSet);
             }else{
                 if(toSet.length){
                     arrayArg = toSet;
@@ -118,17 +119,38 @@ wok.ShaderProgram.prototype = {
                     arrayArg = [toSet];  
                 }
             }
+
+            //Textures need to be bound to a texture unit before it can be used
+            //And the value passed to the uniform is the n° of that unit
+            //Here we find for each texture a unit and replace it directly in arrayArg
+            //FIXME: stupd implementation allows only one texture or texture array
+            if(typeInfo.type == "texture"){
+/*                for(var i=0; i<arrayArg.length; i++){
+                    this.gl.activeTexture(this.gl.TEXTURE0+i);
+                    arrayArg[i].bind();
+                    arrayArg[i] = i;
+                    this.gl.uniform1i(uniInfo.handle, 0);
+                }
+                isTexture = true;
+                continue;*/
+                this.gl.activeTexture(this.gl.TEXTURE0);
+                gl.bindTexture(gl.TEXTURE_2D, arrayArg[0]);
+                this.gl.uniform1i(uniInfo.handle, 0);
+                continue;
+                
+            }
             
             //Warning !!! GL functions need to be called with this = gl
             //Make the actual call to the GL depending on the uniform type
-            if(typeInfo.type == "int"){
-                typeInfo.setter.call(this.gl, uniInfo.handle, new WebGLIntArray(arrayArg));
+            //Texture are treated like ints as we are giving a tex unit n°
+            if(typeInfo.type == "int" /*|| isTexture*/){
+                typeInfo.setter.call(this.gl, uniInfo.handle, new Int32Array(arrayArg));
             }else if(typeInfo.type == "float"){
                 typeInfo.setter.call(this.gl, uniInfo.handle, new Float32Array(arrayArg));
             }else{
                 typeInfo.setter.call(this.gl, uniInfo.handle, false, new Float32Array(arrayArg));
             }
-            
+
         }
 
         return this;
