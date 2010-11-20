@@ -48,7 +48,6 @@ var example = {
 
         boardTexture = new gl.Texture().dataFromElement($("#brick-texture")[0]);
 
-        //Shows the boxes are actually different
         angularSpeed = Math.random()*0.2 - 0.1;
         framecount = 0;
         setInterval(function(){example.drawScene();}, 15);

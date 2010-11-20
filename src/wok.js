@@ -110,6 +110,7 @@ var wok = {
         }*/ 
     },
 
+    //First function called on a context as many things need to be set up using this context
     initSelf: function(options){
         //Initialise the convenient tables ;)
         //FIXME: share most things between contexts to avoid calculation ?
@@ -122,6 +123,8 @@ var wok = {
         
         //User-given options
         this.setOptions(options);
+
+        this.TexUnitManager = new wok.TexUnitManager(this);
     },
 
     //Decorate a WebGL object with a class to have it act like an instance of that class
@@ -135,6 +138,7 @@ var wok = {
         return child;
     },
     
+    //Set options using a table
     setOptions: function(opt){
         for(option in opt){
             if(option in wok.options){

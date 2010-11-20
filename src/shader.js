@@ -123,27 +123,17 @@ wok.ShaderProgram.prototype = {
             //Textures need to be bound to a texture unit before it can be used
             //And the value passed to the uniform is the n° of that unit
             //Here we find for each texture a unit and replace it directly in arrayArg
-            //FIXME: stupd implementation allows only one texture or texture array
             if(typeInfo.type == "texture"){
-/*                for(var i=0; i<arrayArg.length; i++){
-                    this.gl.activeTexture(this.gl.TEXTURE0+i);
-                    arrayArg[i].bind();
-                    arrayArg[i] = i;
-                    this.gl.uniform1i(uniInfo.handle, 0);
+                for(var i=0; i<arrayArg.length; i++){
+                    arrayArg[i] = this.gl.TexUnitManager.activeTexture(arrayArg[i]);
+                    isTexture = true;
                 }
-                isTexture = true;
-                continue;*/
-                this.gl.activeTexture(this.gl.TEXTURE0);
-                gl.bindTexture(gl.TEXTURE_2D, arrayArg[0]);
-                this.gl.uniform1i(uniInfo.handle, 0);
-                continue;
-                
             }
             
             //Warning !!! GL functions need to be called with this = gl
             //Make the actual call to the GL depending on the uniform type
             //Texture are treated like ints as we are giving a tex unit n°
-            if(typeInfo.type == "int" /*|| isTexture*/){
+            if(typeInfo.type == "int" || isTexture){
                 typeInfo.setter.call(this.gl, uniInfo.handle, new Int32Array(arrayArg));
             }else if(typeInfo.type == "float"){
                 typeInfo.setter.call(this.gl, uniInfo.handle, new Float32Array(arrayArg));
