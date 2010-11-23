@@ -1,13 +1,20 @@
 
-wok.Texture = function(){
+wok.Texture = function(src){
     var texture = this.gl.createTexture();
     wok.instance(texture, this);
 
-    this.lastTimeActive = -1;
-    this.texUnit = -1;
- 
+    texture.lastTimeActive = -1;
+    texture.texUnit = -1;
+
+    texture.minFilter = this.gl.NEAREST;
+    texture.magFilter = this.gl.NEAREST;
+
+    if(src) texture.from(src);
+
     return texture;
 }
+
+wok.defaultTextureOptions = {}
 
 wok.Texture.prototype = {
 
@@ -22,21 +29,47 @@ wok.Texture.prototype = {
         this.gl.bindTexture(this.gl.TEXTURE_2D, this);
         return this;
     },
+    
+    //Please support hotloading of textures
+    from: function(src){
+        return this.fromElement(src);
+    },
+
+    fromElement: function(element){
+        //Make sure the element is fully loaded before we get the texture
+        //FIXME: if it's a video what should we do ?
+        if(!element.complete){
+            var texture = this;
+            
+            element.onload = function(){texture.fromElement(this);};
+
+            return this;
+        }
+
+        //ADDME: texture from video (that updates automatically);        
+        this.dataFromElement(element);
+
+        this.gl.info("Successfully loaded the texture");
+        return this;
+    },
 
     //Please add many many options to control the format
     dataFromElement: function(element){
-        if(!element.complete){
-            var texture = this;
-            element.onload = function(){texture.dataFromElement(this);}
-        }else{        
-            this.bind();
-            this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, element);
-            this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
-            this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST);
-            
-            this.gl.info("Successfully loaded the texture");
-        }
+        this.bind();
+        //FIXME: allow different internal formats ?
+        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, element);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.magFilter);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.minFilter);
+        
         return this;
+    },
+    
+    //Set options using a table
+    setOptions: function(options){
+        if(options["magFilter"])
+            this.magFilter = this.gl.textureFilter[options["magFilter"]];
+        if(options["minFilter"])
+            this.magFilter = this.gl.textureFilter[options["minFilter"]];
     }
 }
 

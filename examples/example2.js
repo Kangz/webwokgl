@@ -46,10 +46,9 @@ var example = {
             1.0, 1.0
         ]);
 
-        boardTexture = new gl.Texture().dataFromElement($("#brick-texture")[0]);
+        //Create the wall texture from the hidden img element
+        boardTexture = new gl.Texture($("#brick-texture")[0]);
 
-        angularSpeed = Math.random()*0.2 - 0.1;
-        framecount = 0;
         setInterval(function(){example.drawScene();}, 15);
     },
 
@@ -62,25 +61,23 @@ var example = {
         //Compute the transformations
         var persp = mat4.perspective(45, 800/600, 0.001, 1000.0);
 
-        var modelView = mat4.lookAt([2.5, 0, 0], [0, 0, 0], [0, 1, 0]);
-        mat4.rotateY(modelView, framecount * angularSpeed);
+        var modelView = mat4.lookAt([0, 0, 2.5], [0, 0, 0], [0, 1, 0]);
+        mat4.rotateY(modelView, /*look at mouse*/0);
 
         var MVP = mat4.create();
         mat4.multiply(persp, modelView, MVP);
 
         //Bind attributes/uniforms to their values
-        //Fluent programming ftw
         shaderProgram.setAttributes({
             "aPosition": boardPositions,
             "aTexCoord": boardTexCoord
         }).setUniforms({
             "uMVMatrix": modelView,
             "uMVPMatrix": MVP,
-            "uSampler": boardTexture
-        }).use(); //We are going to draw with this shader
+            "uSampler": boardTexture //Use the texture in the shaders
+        }).use();
         
         //Cmon gl: DRAW!
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-        framecount ++;
     }
 }

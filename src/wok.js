@@ -16,6 +16,7 @@ var wok = {
 
     //Convenient tables
     stringToDepthFunc: {},
+    textureFilter: {},
     //Store information about each opengl Type (size, uniform setter, type etc ...)
     glType: {},
 
@@ -220,6 +221,9 @@ var wok = {
         this.stringToDepthFunc[">"] = this.GREATER;
         this.stringToDepthFunc[">="] = this.GEQUAL;
         this.stringToDepthFunc["!="] = this.NOTEQUAL;
+
+        this.textureFilter["linear"] = this.gl.LINEAR;
+        this.textureFilter["nearest"] = this.gl.NEAREST;
         
     }
 };

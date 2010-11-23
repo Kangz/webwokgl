@@ -6,7 +6,7 @@ var example = {
             new FlyingBox("box1"),
             new FlyingBox("box2"),
             new FlyingBox("box3")        
-        ]
+        ];
         framecount = 0;
         setInterval(function(){example.drawScene();}, 15);
     },
