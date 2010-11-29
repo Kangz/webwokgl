@@ -6,7 +6,7 @@ var example = {
         gl = wok.initGL($("#canvas")[0], {
 
             //Basic setup
-            clearColor: [0.0, 0.0, 0.0, 1.0],
+            clearColor: [0.0, 0.0, 0.5, 1.0],
             texture: true,
 
             //set up logging
