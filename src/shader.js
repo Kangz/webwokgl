@@ -1,8 +1,8 @@
 
 
 //Represents a WebGL Shader program
-//The constructor takes two shaders to be attached immediately
-//TODO allow the Shaders to be attached later ?
+//The constructor takes shaders to be attached immediately
+//If there are more than 2 it likes automatically
 wok.ShaderProgram = function(){
     
     //Create the WebGL Shader program and decorate it
@@ -32,6 +32,7 @@ wok.ShaderProgram.prototype = {
     //Attach shader to the program
     attach: function(shader){
         this.gl.attachShader(this, shader);
+        return this;
     },
 
     //Try to link the shader
@@ -40,9 +41,11 @@ wok.ShaderProgram.prototype = {
 
         if (!this.gl.getProgramParameter(this, this.gl.LINK_STATUS)) {
             this.gl.error("Unable to initialize the shader program: " + this.gl.getProgramInfoLog(this));
-            return null;
         }
         this.computeVariables();
+
+        this.linked = true;
+        this.gl.info("Successfully linked the shaderprogram");
 
         return this;
     },
@@ -74,13 +77,29 @@ wok.ShaderProgram.prototype = {
                 handle: this.gl.getUniformLocation(this, activeInfo.name)
             }
         }
+    },
     
-        return this;    
+    isLinked: function(){
+        return this.linked;
     },
 
-    //TODO Allow the program to check if it is in use so as to avoid some unnecessary binds
     //Select this shader for use in the following draw calls
     use: function(){
+        if(!this.linked){
+            this.gl.error("You need to link a shader before you use it");
+        }
+    
+        //Do not re-use o program that is allready used (it is a really expensive operation)
+        if(this.gl.usedProgram === this){
+            return;  
+        }
+        
+        if(this.gl.usedProgram){
+            this.gl.usedProgram.onGetUnused();
+        }
+        
+        this.gl.usedProgram = this;
+        
         this.gl.useProgram(this);
         
         for(var attr in this.attributes){
@@ -91,8 +110,7 @@ wok.ShaderProgram.prototype = {
     },
 
     //Fired when the shader gets unused
-    //FIXME no use for it now
-    ongetUnused: function(){
+    onGetUnused: function(){
         for(var attr in this.attributes){
             this.gl.disableVertexAttribArray(this.attributes[attr].handle);
         }
@@ -102,9 +120,11 @@ wok.ShaderProgram.prototype = {
     //FIXME: What to do if it is not linked ?
     setAttributes: function(attributes){
         for(var attr in attributes){
+        
             if( !(attr in this.attributes) ){
-                continue;
+                continue; //ignore it as the link phase may remove some Attributes
             }
+            
             attributes[attr].bind();
 
             var size = this.gl.glType[this.attributes[attr].type].size * this.attributes[attr].arraySize
@@ -121,7 +141,7 @@ wok.ShaderProgram.prototype = {
         for(var uni in uniforms){
 
             if( !(uni in this.uniforms) ){
-                continue;
+                continue; //ignore it as the link phase may remove some uniforms
             }
             
             var uniInfo = this.uniforms[uni]
@@ -147,7 +167,7 @@ wok.ShaderProgram.prototype = {
             //Here we find for each texture a unit and replace it directly in arrayArg
             if(typeInfo.type == "texture"){
                 for(var i=0; i<arrayArg.length; i++){
-                    arrayArg[i] = this.gl.TexUnitManager.activeTexture(arrayArg[i]);
+                    arrayArg[i] = arrayArg[i].activate();
                     isTexture = true;
                 }
             }
@@ -200,7 +220,6 @@ wok.Shader = function(shaderSource, type){
     
     if(!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)){
         this.gl.error("An error occurred compiling the shaders: " + this.gl.getShaderInfoLog(shader));
-        return null;
     }
 
     this.gl.info("Succesfully compiled the shader");
@@ -212,8 +231,7 @@ wok.Shader = function(shaderSource, type){
 //shader type based on the script's mimetype
 wok.Shader.fromElement = function(element){
     if(!element){
-        this.gl.warn("Trying to create a shader from a inexistant element");
-        return null;
+        this.gl.error("Trying to create a shader from a inexistant element");
     }
     
     //Let's suppose there are no HTML tags inside the script
@@ -224,8 +242,7 @@ wok.Shader.fromElement = function(element){
     }else if (element.type == "x-shader/x-vertex"){
         return new this.gl.VertexShader(shaderSource);
     }else{
-        this.gl.warn("Shader element type must be x-shader/x-[fragment|shader]");
-        return null;  // Unknown shader type
+        this.gl.error("Shader element type must be x-shader/x-[fragment|shader]");
     }
 }
 

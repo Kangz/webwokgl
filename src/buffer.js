@@ -17,7 +17,7 @@ wok.ElementBuffer = function(usage){
 wok.Buffer = function(usage, type, data){
 
     if(!usage){
-        this.gl.error("A Buffer need a usage")
+        this.gl.error("A Buffer need a usage");
         return null;
     }
 
@@ -40,6 +40,7 @@ wok.Buffer.prototype = {
     //Feed data to be put in the buffer
     feed: function(){
         this.internalFeed(wok.utils.concatArray(arguments));
+        return this;
     },
 
     //returns true if the buffer is a Buffer
@@ -66,9 +67,12 @@ wok.Buffer.prototype = {
         this.gl.bufferData(this.type, new arrayType(data), this.usage);
     },
 
-    //TODO Check if it is already bound
     //Choose this buffer to be used for the next operations
     bind: function(){
-        this.gl.bindBuffer(this.type, this);
+        if(this.gl.boundBuffer !== this){
+            this.gl.bindBuffer(this.type, this);
+            this.gl.boundBuffer = this;
+        }
+        return this;
     }
 }

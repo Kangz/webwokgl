@@ -1,13 +1,13 @@
 
 wok.options = {
     info: function(gl, value){
-        gl.info = value;
+        gl.onInfo = value;
     },
     warn: function(gl, value){
-        gl.warn = value;
+        gl.onWarn = value;
     },
     error: function(gl, value){
-        gl.error = value;
+        gl.onError = value;
     },
 
     clearColor: function(gl, value){

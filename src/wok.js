@@ -10,9 +10,21 @@ var wok = {
     modules: [],
 
     //Provides callback for logging
-    info: function(){},
-    warn: function(){},
-    error: function(){},
+    info: function(string){this.onInfo(string);},
+    warn: function(string){this.onWarn(string);},
+    error: function(string, object){
+        if(!this.onError(string)){
+            throw {error: string, data: object};
+        }
+    },
+    onInfo: function(){},
+    onWarn: function(){},
+    onError: function(){},
+    
+    //Keep track of the bound object so as to avoid unnecessary bind commands
+    usedProgram: null,
+    boundBuffer: null,
+    boundTexture: null,
 
     //Convenient tables
     stringToDepthFunc: {},
@@ -148,6 +160,7 @@ var wok = {
                 this.warn("Invalid option name: " + option);
             }
         }
+        return this;
     },
     
     //Build up some table so as to conveniently us opengl constants/types

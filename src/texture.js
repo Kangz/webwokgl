@@ -19,14 +19,16 @@ wok.defaultTextureOptions = {}
 wok.Texture.prototype = {
 
     //Allows everyone to active a texture without knowing what is the manager
-    //TESTME
-    active: function(){
+    activate: function(){
         return this.gl.TexUnitManager.activeTexture(this);
     },
 
-    //FIXME: avoid unnecessary bind
+    //Binds the current texture
     bind: function(){
-        this.gl.bindTexture(this.gl.TEXTURE_2D, this);
+        if(this.gl.boundTexture !== this){
+            this.gl.bindTexture(this.gl.TEXTURE_2D, this);
+            this.gl.boundTexture = this;
+        }
         return this;
     },
     
@@ -70,6 +72,8 @@ wok.Texture.prototype = {
             this.magFilter = this.gl.textureFilter[options["magFilter"]];
         if(options["minFilter"])
             this.magFilter = this.gl.textureFilter[options["minFilter"]];
+            
+        return this;
     }
 }
 
@@ -114,6 +118,8 @@ wok.TexUnitManager.prototype = {
         texture.texUnit = unit;
         this.gl.activeTexture(this.gl.TEXTURE0 + unit);
         texture.bind();
+        
+        return unit;
     }
 };
 
