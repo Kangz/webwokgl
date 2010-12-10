@@ -56,6 +56,7 @@ wok.Texture.prototype = {
     },
 
     //Please add many many options to control the format
+    //FIXME mipmaps ?
     dataFromElement: function(element){
         this.bind();
         //FIXME: allow different internal formats ?
@@ -66,6 +67,21 @@ wok.Texture.prototype = {
         return this;
     },
     
+    //FIXME mipmaps ?
+    dataFromArray: function(array, width, height){
+        this.bind();
+        //FIXME: allow different internal formats ?
+        this.gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, Uint8Array(array));
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.magFilter);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.minFilter);
+        
+        return this;
+    },
+
+    emptyTexture: function(width, height){
+        return new this.gl.Texture().dataFromArray(null, width, height);
+    },
+
     //Set options using a table
     setOptions: function(options){
         if(options["magFilter"])
@@ -74,6 +90,10 @@ wok.Texture.prototype = {
             this.magFilter = this.gl.textureFilter[options["minFilter"]];
             
         return this;
+    },
+    
+    isTexture: function(){
+        return true;
     }
 }
 
@@ -122,5 +142,3 @@ wok.TexUnitManager.prototype = {
         return unit;
     }
 };
-
-

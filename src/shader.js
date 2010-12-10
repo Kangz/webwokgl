@@ -138,15 +138,23 @@ wok.ShaderProgram.prototype = {
     //FIXME: What to do if it is not linked ?
     setUniforms: function(uniforms){
 
-        for(var uni in uniforms){
+        for(var uniArg in uniforms){
 
-            if( !(uni in this.uniforms) ){
-                continue; //ignore it as the link phase may remove some uniforms
+            if( !(uniArg in this.uniforms) ){
+                
+                //Check if this uniform is an array
+                if(uniArg+"[0]" in this.uniforms){
+                    uni = uniArg + "[0]";
+                }else{
+                    continue; //ignore it as the link phase may remove some uniforms
+                }
+            }else{
+                uni = uniArg;
             }
             
             var uniInfo = this.uniforms[uni]
             var typeInfo = this.gl.glType[uniInfo.type];
-            var toSet = uniforms[uni];
+            var toSet = uniforms[uniArg];
             var isTexture = false;
 
             //If the uniform is an array value the function takes an array of values
