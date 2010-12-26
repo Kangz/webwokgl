@@ -5,7 +5,8 @@ var wok = {
         "ArrayBuffer", "ElementBuffer", "Buffer",
         "Shader", "FragmentShader", "VertexShader",
         "ShaderProgram",
-        "Texture"
+        "Texture",
+        "RenderBuffer", "FrameBuffer"
     ],
     modules: [],
 
@@ -31,6 +32,10 @@ var wok = {
     textureFilter: {},
     //Store information about each opengl Type (size, uniform setter, type etc ...)
     glType: {},
+    renderBufferStorage: {},
+    frameBufferAttachment: {},
+    defaultRenderBufferStorage: {},
+
 
     //Create a GL context from a context and encapsulate it within wok
     initGL: function(canvas, options){
@@ -137,6 +142,14 @@ var wok = {
         this.setOptions(options);
 
         this.TexUnitManager = new wok.TexUnitManager(this);
+
+        //Move this somewhere else ?
+        this.screen = {
+            gl: this,
+            bind: function(){
+                this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
+            }
+        }
     },
 
     //Decorate a WebGL object with a class to have it act like an instance of that class
@@ -256,5 +269,23 @@ var wok = {
 
         this.textureFilter["linear"] = this.gl.LINEAR;
         this.textureFilter["nearest"] = this.gl.NEAREST;
+
+        this.renderBufferStorage["rgba4"] = this.RGBA4;
+        this.renderBufferStorage["rgb5a1"] = this.RGB5_A1;
+        this.renderBufferStorage["rgb565"] = this.RGB565;
+        this.renderBufferStorage["depth"] = this.DEPTH_COMPONENT16;
+        this.renderBufferStorage["stencil_index"] = this.STENCIL_INDEX;
+        this.renderBufferStorage["stencil_index8"] = this.STENCIL_INDEX8;
+        this.renderBufferStorage["depth_stencil"] = this.DEPTH_STENCIL;
+
+        this.frameBufferAttachment["color"] = this.COLOR_ATTACHMENT0;
+        this.frameBufferAttachment["depth"] = this.DEPTH_ATTACHMENT;
+        this.frameBufferAttachment["stencil"] = this.STENCIL_ATTACHMENT;
+        this.frameBufferAttachment["depth_stencil"] = this.DEPTH_STENCIL_ATTACHMENT;
+
+        this.defaultRenderBufferStorage["color"] = "rgba4";
+        this.defaultRenderBufferStorage["depth"] = "depth";
+        this.defaultRenderBufferStorage["stencil"] = "stencil_index";
+        this.defaultRenderBufferStorage["depth_stencil"] = "depth_stencil";
     }
 };
