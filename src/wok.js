@@ -1,7 +1,7 @@
 
 var wok = {
     
-    classes: [
+    GLclasses: [
         "ArrayBuffer", "ElementBuffer", "Buffer",
         "Shader", "FragmentShader", "VertexShader",
         "ShaderProgram",
@@ -32,7 +32,6 @@ var wok = {
     //Store information about each opengl Type (size, uniform setter, type etc ...)
     glType: {},
 
-
     //Create a GL context from a context and encapsulate it within wok
     initGL: function(canvas, options){
         var gl = null;
@@ -50,7 +49,7 @@ var wok = {
         }
 
         if(!gl){
-            return null
+            return null;
         }
 
         //the spec of Typed Arrays changed recently :
@@ -95,8 +94,8 @@ var wok = {
         for(attr in module)
             obj[attr] = module[attr];
         
-        //Create all the proxy classes
-        for(var i=0; i<module.classes.length; i++){
+        //Create all the proxy classes for GL objects
+        for(var i=0; i<module.GLclasses.length; i++){
             
             //This is a fake constructor that applies the real constructor to the proxy class
             var proxyClass = function(){
@@ -105,14 +104,14 @@ var wok = {
             
             //Tell the proxyClass about the context and it's base class
             proxyClass.gl = context;
-            proxyClass.wokClass = module[module.classes[i]];
+            proxyClass.wokClass = module[module.GLclasses[i]];
             
             //Make the actual proxy
             for(var attr in proxyClass.wokClass)
                 proxyClass[attr] = proxyClass.wokClass[attr];
             
             proxyClass.prototype = proxyClass.wokClass.prototype;
-            obj[module.classes[i]] = proxyClass;
+            obj[module.GLclasses[i]] = proxyClass;
         }
 
         //TODO extend modules
@@ -141,7 +140,7 @@ var wok = {
     },
 
     //Decorate a WebGL object with a class to have it act like an instance of that class
-    instance: function(child, supertype){
+    instanceGLObj: function(child, supertype){
         for(var property in supertype.prototype){
             if(typeof child[property] == "undefined")
                 child[property] = supertype.prototype[property];  
@@ -182,6 +181,26 @@ var wok = {
         };
         this.glType[this.INT_VEC4] = {
             type: "int",
+            setter: this.uniform4iv,
+            size: 4
+        };
+        this.glType[this.BOOL] = {
+            type: "bool",
+            setter: this.uniform1iv,
+            size: 1
+        };
+        this.glType[this.BOOL_VEC2] = {
+            type: "bool",
+            setter: this.uniform2iv,
+            size: 2
+        };
+        this.glType[this.BOOL_VEC3] = {
+            type: "bool",
+            setter: this.uniform3iv,
+            size: 3
+        };
+        this.glType[this.BOOL_VEC4] = {
+            type: "bool",
             setter: this.uniform4iv,
             size: 4
         };
@@ -237,6 +256,5 @@ var wok = {
 
         this.textureFilter["linear"] = this.gl.LINEAR;
         this.textureFilter["nearest"] = this.gl.NEAREST;
-        
     }
 };

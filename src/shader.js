@@ -7,7 +7,7 @@ wok.ShaderProgram = function(){
     
     //Create the WebGL Shader program and decorate it
     var program = this.gl.createProgram();
-    wok.instance(program, this);
+    wok.instanceGLObj(program, this);
 
     program.linked = false;    
     program.attributes = {};
@@ -23,7 +23,6 @@ wok.ShaderProgram = function(){
     if(this.arguments.length > 1)
         return program.link();     //Returns null if the link fails
 
-    
     return program;    
 }
 
@@ -71,10 +70,19 @@ wok.ShaderProgram.prototype = {
         
         for(var i=0; i<uniformNumber; i++){
             var activeInfo = this.gl.getActiveUniform(this, i);
-            this.uniforms[activeInfo.name] = {
+            //Fix a bug in some webgl implementations ...
+            //An array's name is supposed to be <name>[0] but some impl give <name>[[0]
+            //But still expect us to use <name>[0] to retrieve the handle
+            var name = activeInfo.name;
+            var index = name.indexOf("[");
+            if(index >= 0){
+                name = name.slice(0, index) + "[0]";
+            }
+
+            this.uniforms[name] = {
                 arraySize: activeInfo.size, //A size of 1 probably means it is not an array
                 type: activeInfo.type,
-                handle: this.gl.getUniformLocation(this, activeInfo.name)
+                handle: this.gl.getUniformLocation(this, name)
             }
         }
     },
@@ -89,19 +97,16 @@ wok.ShaderProgram.prototype = {
             this.gl.error("You need to link a shader before you use it");
         }
     
-        //Do not re-use o program that is allready used (it is a really expensive operation)
+        //Do not re-use a program that is allready used (it is a really expensive operation)
         if(this.gl.usedProgram === this){
-            return;  
+            return this;
         }
-        
         if(this.gl.usedProgram){
             this.gl.usedProgram.onGetUnused();
         }
-        
         this.gl.usedProgram = this;
         
         this.gl.useProgram(this);
-        
         for(var attr in this.attributes){
             this.gl.enableVertexAttribArray(this.attributes[attr].handle);
         }
@@ -138,11 +143,15 @@ wok.ShaderProgram.prototype = {
     //FIXME: What to do if it is not linked ?
     setUniforms: function(uniforms){
 
+        //Some WebGL implementation require this <-- WTF
+        //They do not pass the uniform unless we are using the shader
+        //Or maybe it is in the specification ...
+        this.use();
+
         for(var uniArg in uniforms){
 
             if( !(uniArg in this.uniforms) ){
-                
-                //Check if this uniform is an array
+                //Check if this uniform is an array (it has a trailing [0])
                 if(uniArg+"[0]" in this.uniforms){
                     uni = uniArg + "[0]";
                 }else{
@@ -151,7 +160,7 @@ wok.ShaderProgram.prototype = {
             }else{
                 uni = uniArg;
             }
-            
+
             var uniInfo = this.uniforms[uni]
             var typeInfo = this.gl.glType[uniInfo.type];
             var toSet = uniforms[uniArg];
@@ -183,7 +192,7 @@ wok.ShaderProgram.prototype = {
             //Warning !!! GL functions need to be called with this = gl
             //Make the actual call to the GL depending on the uniform type
             //Texture are treated like ints as we are giving a tex unit n°
-            if(typeInfo.type == "int" || isTexture){
+            if(typeInfo.type == "int" || isTexture || typeInfo.type == "bool"){
                 typeInfo.setter.call(this.gl, uniInfo.handle, new Int32Array(arrayArg));
             }else if(typeInfo.type == "float"){
                 typeInfo.setter.call(this.gl, uniInfo.handle, new Float32Array(arrayArg));
@@ -218,7 +227,7 @@ wok.Shader = function(shaderSource, type){
 
     //Create the WebGL Shader and decorate it
     var shader = this.gl.createShader(type);
-    wok.instance(shader, this);    
+    wok.instanceGLObj(shader, this);    
   
     this.type = type;
     
@@ -255,6 +264,7 @@ wok.Shader.fromElement = function(element){
 }
 
 wok.Shader.prototype = {
+	//keep this ?
     destroy: function(){
         this.gl.deleteShader(this);
     },

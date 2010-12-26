@@ -1,7 +1,7 @@
 
 wok.Texture = function(src){
     var texture = this.gl.createTexture();
-    wok.instance(texture, this);
+    wok.instanceGLObj(texture, this);
 
     texture.lastTimeActive = -1;
     texture.texUnit = -1;
@@ -15,6 +15,10 @@ wok.Texture = function(src){
 }
 
 wok.defaultTextureOptions = {}
+
+wok.Texture.emptyTexture = function(width, height){
+        return new this.gl.Texture().emptyData(width, height);
+}
 
 wok.Texture.prototype = {
 
@@ -59,6 +63,7 @@ wok.Texture.prototype = {
     //FIXME mipmaps ?
     dataFromElement: function(element){
         this.bind();
+        
         //FIXME: allow different internal formats ?
         this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, element);
         this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.magFilter);
@@ -70,6 +75,7 @@ wok.Texture.prototype = {
     //FIXME mipmaps ?
     dataFromArray: function(array, width, height){
         this.bind();
+        
         //FIXME: allow different internal formats ?
         this.gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, Uint8Array(array));
         this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.magFilter);
@@ -78,8 +84,16 @@ wok.Texture.prototype = {
         return this;
     },
 
-    emptyTexture: function(width, height){
-        return new this.gl.Texture().dataFromArray(null, width, height);
+    //FIXME mipmaps ?
+    emptyData: function(width, height){
+        this.bind();
+
+        //FIXME: allow different internal formats ?
+        this.gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.magFilter);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.minFilter);
+
+        return this;
     },
 
     //Set options using a table
@@ -110,7 +124,7 @@ wok.TexUnitManager = function(gl){
         this.units.push(null);
     }
 };
-
+//FIXME: what if a i bind a texture while I don't want to activate that texture ?
 wok.TexUnitManager.prototype = {
     activeTexture: function(texture){
 

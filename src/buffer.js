@@ -22,7 +22,7 @@ wok.Buffer = function(usage, type, data){
     }
 
     var buffer = this.gl.createBuffer();
-    wok.instance(buffer, this);
+    wok.instanceGLObj(buffer, this);
 
     buffer.usage = usage;
     buffer.type = type;
