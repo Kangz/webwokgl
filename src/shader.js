@@ -211,25 +211,31 @@ wok.ShaderProgram.prototype = {
 
 //Represents a WebGL Fragment Shader
 //The constructor takes the shader source as an argument
-wok.FragmentShader = function(shaderSource){
-    return new this.gl.Shader(shaderSource, this.gl.FRAGMENT_SHADER);
+//and an optional macro dictionnary
+wok.FragmentShader = function(shaderSource, macros){
+    return new this.gl.Shader(shaderSource, this.gl.FRAGMENT_SHADER, macros);
 };
 
 //Represents a WebGL Vertex Shader
 //The constructor takes the shader source as an argument
-wok.VertexShader = function(shaderSource){
-    return new this.gl.Shader(shaderSource, this.gl.VERTEX_SHADER);
+//and an optional macro dictionnary
+wok.VertexShader = function(shaderSource, macros){
+    return new this.gl.Shader(shaderSource, this.gl.VERTEX_SHADER, macros);
 };
 
 //Represents a WebGL Shader
 //The constructor takes the shader source and the shader type as arguments
-wok.Shader = function(shaderSource, type){
+wok.Shader = function(shaderSource, type, macros){
 
     //Create the WebGL Shader and decorate it
     var shader = this.gl.createShader(type);
-    wok.instanceGLObj(shader, this);    
+    wok.instanceGLObj(shader, this);
   
     this.type = type;
+    
+    if(macros){
+        shaderSource = wok.Shader.createMacros(macros) + shaderSource;
+    }
     
     //If the compilation fail return nothing
     this.gl.shaderSource(shader, shaderSource);
@@ -246,7 +252,7 @@ wok.Shader = function(shaderSource, type){
 
 //Builds a Shader from the given script element. This function will guess the 
 //shader type based on the script's mimetype
-wok.Shader.fromElement = function(element){
+wok.Shader.fromElement = function(element, macros){
     if(!element){
         this.gl.error("Trying to create a shader from a inexistant element");
     }
@@ -255,13 +261,21 @@ wok.Shader.fromElement = function(element){
     var shaderSource = element.textContent;
 
     if(element.type == "x-shader/x-fragment"){
-        return new this.gl.FragmentShader(shaderSource);
+        return new this.gl.FragmentShader(shaderSource, macros);
     }else if (element.type == "x-shader/x-vertex"){
-        return new this.gl.VertexShader(shaderSource);
+        return new this.gl.VertexShader(shaderSource, macros);
     }else{
         this.gl.error("Shader element type must be x-shader/x-[fragment|shader]");
     }
 }
+
+wok.Shader.createMacros = function(dict){
+    var result = [];
+    for(i in dict){
+        result.push("#define " + i.toUpperCase() + " " + dict[i].toString());
+    }
+    return result.join("\n") + "\n";
+};
 
 wok.Shader.prototype = {
 	//keep this ?
