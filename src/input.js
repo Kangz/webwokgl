@@ -80,7 +80,7 @@ wok.input = {
                 if(!code){
                     continue; // warn ?
                 }
-                state = this.states[code];                
+                state = this.states[code];
             }
 
             if(onKeyDown){
@@ -91,7 +91,7 @@ wok.input = {
         }
         return this;
     },
-    
+
     //Returns true if the given key is pressed, false otherwise
     isPressed: function(key){
         var state = this.states[this.keyNameToCode[key]]
@@ -101,7 +101,7 @@ wok.input = {
         return state.pressed;
     },
 
-    //test it a bit ?    
+    //test it a bit ?
     //add callbacks for each canvas to track the mouse
     createCanvasCallbacks: function(gl, canvas){
         gl.mouse = {
@@ -148,7 +148,7 @@ wok.input = {
             var x = e.clientX - canvas.offsetLeft;
             var y = e.clientY - canvas.offsetTop;
             m.pos = {"x": x, "y": y};
-            console.log(e);
+
             //this is for the actual mouseover
             m.over = true;
             if(m.onOver)m.onOver();
