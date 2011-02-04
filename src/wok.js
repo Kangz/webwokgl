@@ -8,6 +8,9 @@ var wok = {
         "Texture",
         "RenderBuffer", "FrameBuffer"
     ],
+    classes: [
+    
+    ],
     modules: [],
 
     //Provides callback for logging
@@ -68,8 +71,13 @@ var wok = {
             Int32Array = WebGLUnsignedShortArray;
         }
 
+        gl.canvas = canvas;
+
         //Decorate the context with wok so as to be able to have multiple contexts    
         wok.extendModule(gl, wok, gl);
+
+        //Create a function that will be used by objects to get their gl
+        gl.getGL = function(){return gl;};
 
         //All the initialisation is done there
         if(arguments.length > 1)
@@ -116,6 +124,7 @@ var wok = {
                 proxyClass[attr] = proxyClass.wokClass[attr];
             
             proxyClass.prototype = proxyClass.wokClass.prototype;
+
             obj[module.GLclasses[i]] = proxyClass;
         }
 
@@ -129,6 +138,7 @@ var wok = {
 
     //First function called on a context as many things need to be set up using this context
     initSelf: function(options){
+
         //Initialise the convenient tables ;)
         //FIXME: share most things between contexts to avoid calculation ?
         this.initConvenientTables();
@@ -142,6 +152,8 @@ var wok = {
         this.setOptions(options);
 
         this.TexUnitManager = new wok.TexUnitManager(this);
+
+        wok.input.createCanvasCallbacks(this, this.canvas);
 
         //Move this somewhere else ?
         this.screen = {
@@ -165,7 +177,7 @@ var wok = {
     
     //Set options using a table
     setOptions: function(opt){
-        for(option in opt){
+        for(var option in opt){
             if(option in wok.options){
                 wok.options[option](this, opt[option]);
             }else{

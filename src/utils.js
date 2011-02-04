@@ -1,6 +1,10 @@
 
 wok.utils = {
 
+    clamp: function(x, min, max){
+        return x>min ? (x<max ? x : max) : min;
+    },
+
     //Returns the concatenation of all the elements of the argument
     concatArray: function(data, startAt){
         var result = [];

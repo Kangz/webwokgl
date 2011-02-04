@@ -150,6 +150,8 @@ wok.ShaderProgram.prototype = {
 
         for(var uniArg in uniforms){
 
+            var uni
+            
             if( !(uniArg in this.uniforms) ){
                 //Check if this uniform is an array (it has a trailing [0])
                 if(uniArg+"[0]" in this.uniforms){
@@ -271,7 +273,7 @@ wok.Shader.fromElement = function(element, macros){
 
 wok.Shader.createMacros = function(dict){
     var result = [];
-    for(i in dict){
+    for(var i in dict){
         result.push("#define " + i.toUpperCase() + " " + dict[i].toString());
     }
     return result.join("\n") + "\n";
