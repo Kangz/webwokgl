@@ -1,0 +1,91 @@
+<html>
+    <head>
+         <title>Wok Demo : Cristal</title>
+         <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+         <script type="text/javascript" src="../../lib/jquery.js"></script>
+         
+        <!-- Wok -->
+        
+        <script src="../../lib/glMatrix.js" type="text/javascript"></script>
+        <script src="../../src/wok.js" type="text/javascript"></script>
+        <script src="../../src/options.js" type="text/javascript"></script>
+        <script src="../../src/shader.js" type="text/javascript"></script>
+        <script src="../../src/utils.js" type="text/javascript"></script>
+        <script src="../../src/buffer.js" type="text/javascript"></script>
+        <script src="../../src/texture.js" type="text/javascript"></script>
+        <script src="../../src/framebuffer.js" type="text/javascript"></script>
+        <script src="../../src/wavefront.js" type="text/javascript"></script>
+        <script src="../../src/input.js" type="text/javascript"></script>
+
+        <!-- Example specific script -->
+
+        <script type="text/javascript" src="cristal_viewer.js"></script>
+        <script type="text/javascript" src="cristal.js"></script>
+        
+        <script type="text/javascript">
+            $(document).ready(function(){
+                init();
+            });
+        </script>
+
+        <!-- Fragment shader program -->
+
+        <script id="shader-fs" type="x-shader/x-fragment">
+            precision highp float; //some drivers need this
+
+            varying vec3 vWorldPosition;
+            varying vec3 vLightPosition;
+
+            uniform vec3 normal;
+            uniform vec3 color;
+            uniform vec3 planes[N_PLANES];
+
+            void main(void){
+                for(int i=0; i<N_PLANES; i++){
+                    if(abs(dot(planes[i], vWorldPosition))>1.00001){
+                        discard;
+                    }
+                }
+                gl_FragColor = vec4(color * (max(dot(vec3(0.2, 0.4, 1.0), normal), 0.0)*0.8 +0.2), 1.0);
+            }
+        </script>
+
+        <!-- Vertex shader program -->
+    
+        <script id="shader-vs" type="x-shader/x-vertex">
+            attribute vec2 aPosition;
+      
+            varying vec3 vWorldPosition;
+            varying vec3 vLightPosition;
+
+            uniform mat4 mMatrix;
+            uniform mat4 vpMatrix;
+            uniform float planeZ;
+      
+            void main(void){
+                vec4 position = mMatrix * vec4(aPosition, planeZ, 1.0);
+                vWorldPosition = position.xyz;                
+                gl_Position = vpMatrix * position;
+                vLightPosition = gl_Position.xyz;
+            }
+        </script>
+    </head>
+
+    <body>
+        <canvas id="canvas" width="600" height="600">
+            Your browser doesn't appear to support the HTML5 <code>&lt;canvas&gt;</code> element.
+        </canvas>
+        <form>
+            <input type="range" min="0.5" max="1.8" step="0.001" value="1.8" onchange="changeCoeff('octahedron', this);" id="octahedron-slider"> Octahedron (R and T)
+            <br/>
+            <input type="range" min="0.8" max="1.5" step="0.001" value="1.5" onchange="changeCoeff('dodecahedron', this);" id="dodecahedron-slider"> Dodecahedron (F and G)
+            <br/>
+            <input type="range" min="0.7" max="1.5" step="0.001" value="1.5" onchange="changeCoeff('r_dodecahedron', this);" id="r_dodecahedron-slider"> Rombic Dodecahedron (V and B)
+            <br/>
+            Show the different slices with different colors <input type="checkbox" checked="checked" id="color-checkbox"> 
+        </form>
+        <p>LOG</p>
+        <textarea id="logs" style="width: 600px; height: 200px"></textarea>        
+    </body>
+</html>
