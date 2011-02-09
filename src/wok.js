@@ -32,6 +32,8 @@ var wok = {
 
     //Convenient tables
     stringToDepthFunc: {},
+    textureFormat: {},
+    textureFormatArray: {},
     textureFilter: {},
     //Store information about each opengl Type (size, uniform setter, type etc ...)
     glType: {},
@@ -159,7 +161,8 @@ var wok = {
     //Decorate a WebGL object with a class to have it act like an instance of that class
     instanceGLObj: function(child, supertype){
         for(var property in supertype.prototype){
-            if(typeof child[property] == "undefined")
+            //I guess I don't need that check
+            if(! (property in child))
                 child[property] = supertype.prototype[property];  
         }
         //TODO add the class' attributes ?
@@ -270,6 +273,20 @@ var wok = {
         this.stringToDepthFunc[">"] = this.GREATER;
         this.stringToDepthFunc[">="] = this.GEQUAL;
         this.stringToDepthFunc["!="] = this.NOTEQUAL;
+
+        this.textureFormat["ubyte"] = this.UNSIGNED_BYTE;
+        this.textureFormat["ushort4444"] = this.UNSIGNED_SHORT_4_4_4_4; //are these really needed ?
+        this.textureFormat["ushort5551"] = this.UNSIGNED_SHORT_5_5_5_1;
+        this.textureFormat["ushort565"] = this.UNSIGNED_SHORT_5_6_5;
+        //Todo check for the extension
+        this.textureFormat["float"] = this.UNSIGNED_SHORT_5_6_5;
+
+        this.textureFormatArray["ubyte"] = Uint8Array;
+        this.textureFormatArray["ushort4444"] = Uint16Array; //are these really needed ?
+        this.textureFormatArray["ushort5551"] = Uint16Array;
+        this.textureFormatArray["ushort565"] = Uint16Array;
+        //Todo check for the extension
+        this.textureFormatArray["float"] = Float32Array;     
 
         this.textureFilter["linear"] = this.gl.LINEAR;
         this.textureFilter["nearest"] = this.gl.NEAREST;
