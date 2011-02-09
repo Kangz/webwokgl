@@ -19,13 +19,15 @@ wok.utils = {
     //Are the vectors spread evenly ?
     //It may be better to use trigonometrics functions etc ...
     randomUnitVector: function(){
-        var v=[]
         while(true){
-            v[0] = Math.random()*2 - 1;
-            v[1] = Math.random()*2 - 1;
-            v[2] = Math.random()*2 - 1;
-            if( 0.00001 <= vec3.length(v) <= 1){
-                return vec3.normalize(v)
+            var x = Math.random()*2 - 1;
+            var y = Math.random()*2 - 1;
+            var z = Math.random()*2 - 1;
+            var lengthSquared = x*x + y*y + z*z;
+            
+            if( 0.000001 <= lengthSquared <= 1){
+                var length = Math.sqrt(lengthSquared);
+                return [x/length, y/length, z/length];
             }
         }
     }
