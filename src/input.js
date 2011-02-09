@@ -158,6 +158,9 @@ wok.input = {
             if(m.onOut)m.onOut();
         }, false);
 
+        //Avoid the ugly pipe like mouse when dragging
+        canvas.onselectstart = canvas.onselectstart || function(e){return false;};
+
         //TODO: add scroll with DOMMouseScroll
     }
 }

@@ -60,17 +60,6 @@ var wok = {
             return null;
         }
 
-        //the spec of Typed Arrays changed recently :
-        if(!Float32Array){
-            Float32Array = WebGLFloatArray;
-        }
-        if(!Uint16Array){
-            Uint16Array = WebGLUnsignedShortArray;
-        }
-        if(!Int32Array){
-            Int32Array = WebGLUnsignedShortArray;
-        }
-
         gl.canvas = canvas;
 
         //Decorate the context with wok so as to be able to have multiple contexts    
@@ -138,6 +127,9 @@ var wok = {
 
     //First function called on a context as many things need to be set up using this context
     initSelf: function(options){
+
+        //The spec requires that call to viewport, otherwise the results are undefined
+        this.viewport(0, 0, this.canvas.width, this.canvas.height);
 
         //Initialise the convenient tables ;)
         //FIXME: share most things between contexts to avoid calculation ?
