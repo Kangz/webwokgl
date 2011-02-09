@@ -263,7 +263,7 @@ var wok = {
         }
         
         this.stringToDepthFunc["never"] = this.NEVER;
-        this.stringToDepthFunc["always"] = this.always;
+        this.stringToDepthFunc["always"] = this.ALWAYS;
         this.stringToDepthFunc["<"] = this.LESS;
         this.stringToDepthFunc["<="] = this.LEQUAL;
         this.stringToDepthFunc["=="] = this.stringToDepthFunc["="] = this.EQUAL; //will help some
