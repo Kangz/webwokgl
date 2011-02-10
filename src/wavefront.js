@@ -1,5 +1,5 @@
 
-
+//Move this somwhere else ?
 wok.Wavefront = {
 
     //Very simple .obj loading    
