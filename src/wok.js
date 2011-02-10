@@ -279,7 +279,7 @@ var wok = {
         this.textureFormat["ushort5551"] = this.UNSIGNED_SHORT_5_5_5_1;
         this.textureFormat["ushort565"] = this.UNSIGNED_SHORT_5_6_5;
         //Todo check for the extension
-        this.textureFormat["float"] = this.UNSIGNED_SHORT_5_6_5;
+        this.textureFormat["float"] = this.FLOAT;
 
         this.textureFormatArray["ubyte"] = Uint8Array;
         this.textureFormatArray["ushort4444"] = Uint16Array; //are these really needed ?

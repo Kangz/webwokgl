@@ -62,7 +62,7 @@ wok.Texture.prototype = {
     //Please add many many options to control the format
     //FIXME mipmaps ?
     dataFromElement: function(element, optArg){
-        var options = this.setupTexOptions(options || {});
+        var options = this.setupTexOptions(optArg || {});
         this.bind();
         this.setOptions(options).setFilter();
         
@@ -73,23 +73,21 @@ wok.Texture.prototype = {
     
     //FIXME mipmaps ?
     dataFromArray: function(array, width, height, optArg){
-        var options = this.setupTexOptions(options || {});
+        var options = this.setupTexOptions(optArg || {});
         this.bind();
         this.setOptions(options).setFilter();
         
-        //FIXME: allow different internal formats ?
-        this.gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, options["format"], options["formatArray"](array));
+        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, width, height, 0, this.gl.RGBA, options["format"], options["formatArray"](array));
         return this;
     },
 
     //FIXME mipmaps ?
     emptyData: function(width, height, optArg){
-        var options = this.setupTexOptions(options || {});
+        var options = this.setupTexOptions(optArg || {});
         this.bind();
         this.setOptions(options).setFilter();
-        
-        //FIXME: allow different internal formats ?
-        this.gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, options["format"], null);
+       
+        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, width, height, 0, this.gl.RGBA, options["format"], null);
         return this;
     },
 
