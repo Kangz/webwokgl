@@ -154,6 +154,10 @@ var wok = {
             gl: this,
             bind: function(){
                 this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
+            },
+            renderTo: function(){
+                this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
+                this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);            
             }
         }
     },
