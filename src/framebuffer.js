@@ -68,7 +68,7 @@ wok.FrameBuffer.prototype = {
         if(pixelUnitViewport){
             this.gl.viewport(0.0, 0.0, 1.0, 1.0);    
         }else{
-            this.gl.viewport(0.0, 0.0, this.width, this.height);    
+            this.gl.viewport(0.0, 0.0, this.width, this.height);   //Maybe I should remove that, gl_FragCoord is good too 
         }
     }
 
