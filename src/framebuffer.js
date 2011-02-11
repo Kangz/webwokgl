@@ -63,9 +63,13 @@ wok.FrameBuffer.prototype = {
         this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this);
     },
 
-    renderTo: function(){
+    renderTo: function(pixelUnitViewport){
         this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this);
-        this.gl.viewport(0, 0, this.width, this.height);    
+        if(pixelUnitViewport){
+            this.gl.viewport(0.0, 0.0, 1.0, 1.0);    
+        }else{
+            this.gl.viewport(0.0, 0.0, this.width, this.height);    
+        }
     }
 
 };
