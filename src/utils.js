@@ -39,7 +39,7 @@ wok.utils = {
                                 window.mozRequestAnimationFrame ||
                                 window.oRequestAnimationFrame ||
                                 window.msRequestAnimationFrame ||
-                                function(cb){window.setTimeout(cb, 1000/60);};
+                                function(cb){window.setTimeout(function(){cb(Date.now())}, 1000/60);};
         this.requestAnimationFrame(callback);
     }
 
