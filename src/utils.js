@@ -30,6 +30,17 @@ wok.utils = {
                 return [x/length, y/length, z/length];
             }
         }
+    },
+    
+    requestAnimFrame: function(callback){
+        this.requestAnimationFrame = this.requestAnimationFrame||
+                                window.requestAnimationFrame ||
+                                window.webkitRequestAnimationFrame ||
+                                window.mozRequestAnimationFrame ||
+                                window.oRequestAnimationFrame ||
+                                window.msRequestAnimationFrame ||
+                                function(cb){window.setTimeout(cb, 1000/60);};
+        this.requestAnimationFrame(callback);
     }
 
 };
