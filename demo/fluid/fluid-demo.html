@@ -1,0 +1,355 @@
+<!-- Heavily based on http://www.ibiblio.org/e-notes/webgl/gpu/fluid.htm -->
+
+<html><head> 
+<title>2D fluid dynamics</title> 
+
+        <!-- Wok -->
+
+        <script src="../../src/wok.js" type="text/javascript"></script>
+        <script src="../../src/options.js" type="text/javascript"></script>
+        <script src="../../src/shader.js" type="text/javascript"></script>
+        <script src="../../src/utils.js" type="text/javascript"></script>
+        <script src="../../src/buffer.js" type="text/javascript"></script>
+        <script src="../../src/texture.js" type="text/javascript"></script>
+        <script src="../../src/framebuffer.js" type="text/javascript"></script>
+        <script src="../../src/wavefront.js" type="text/javascript"></script>
+        <script src="../../src/input.js" type="text/javascript"></script>
+
+		<script id="shader-fs-show" type="x-shader/x-fragment"> 
+			#ifdef GL_ES
+			precision highp float;
+			#endif
+			
+			uniform sampler2D samp;
+			varying vec2 tc;
+			void main(void) {
+				float T = texture2D(samp, tc).b;
+				if(T > 0.) gl_FragColor = vec4(T, 0., 0., 1.);
+				else gl_FragColor = vec4(0., 0., -T, 1.);
+			}
+		</script> 
+ 
+		<script id="advec-fs" type="x-shader/x-fragment"> 
+			#ifdef GL_ES
+			precision highp float;
+			#endif
+			
+			uniform sampler2D samp;
+			varying vec2 tc;
+			const float h = 1./512., dt = .001, tau = .5*dt/h;
+			void main(void) {
+			    vec2 D = -tau*vec2(
+				texture2D(samp, tc).r + texture2D(samp, vec2(tc.r - h, tc.g)).r,
+				texture2D(samp, tc).g + texture2D(samp, vec2(tc.r, tc.g - h)).g );
+			    vec2 Df = floor(D),   Dd = D - Df;
+			    vec2 tc1 = tc + Df*h;
+			    vec3 new =  
+					(texture2D(samp, tc1).rgb*(1. - Dd.g) +
+					 texture2D(samp, vec2(tc1.r, tc1.g + h)).rgb*Dd.g)*(1. - Dd.r) +
+					(texture2D(samp, vec2(tc1.r + h, tc1.g)).rgb*(1. - Dd.g) +
+					 texture2D(samp, vec2(tc1.r + h, tc1.g + h)).rgb*Dd.g)*Dd.r;
+			    gl_FragColor = vec4( new, texture2D(samp, tc).a );
+			}
+		</script> 
+ 
+		<script id="p-fs" type="x-shader/x-fragment"> 
+			#ifdef GL_ES
+			precision highp float;
+			#endif
+			
+			uniform sampler2D samp;
+			varying vec2 tc;
+			const float h = 1./512.;
+			void main(void) {
+			    vec4 t = texture2D(samp, tc);
+			    t.a =
+					(texture2D(samp, vec2(tc.r - h, tc.g)).a +
+					 texture2D(samp, vec2(tc.r + h, tc.g)).a +
+					 texture2D(samp, vec2(tc.r, tc.g - h)).a +
+					 texture2D(samp, vec2(tc.r, tc.g + h)).a -
+					(t.r - texture2D(samp, vec2(tc.r - h, tc.g)).r +
+					 t.g - texture2D(samp, vec2(tc.r, tc.g - h)).g) *h) *.25;
+			    gl_FragColor = t;
+			}
+		</script> 
+ 
+		<script id="force-fs" type="x-shader/x-fragment"> 
+			#ifdef GL_ES
+			precision highp float;
+			#endif
+			
+			uniform sampler2D samp;
+			uniform float c;
+			varying vec2 tc;
+			const float h = 1./512.;
+			void main(void) {
+			    vec4 t = texture2D(samp, tc);
+			    t.g += c*(t.b + texture2D(samp, vec2(tc.r, tc.g + h)).b );
+			    gl_FragColor = t;
+			}
+		</script> 
+ 
+		<script id="div-fs" type="x-shader/x-fragment"> 
+			#ifdef GL_ES
+			precision highp float;
+			#endif
+			
+			uniform sampler2D samp;
+			varying vec2 tc;
+			const float n = 512., h = 1./n;
+			void main(void){
+			    vec4 t = texture2D(samp, tc);
+			    t.r -= (texture2D(samp, vec2(tc.r + h, tc.g)).a - t.a)*n;
+			    t.g -= (texture2D(samp, vec2(tc.r, tc.g + h)).a - t.a)*n;
+			    gl_FragColor = t;
+			}
+		</script> 
+ 
+		<script id="shader-vs" type="x-shader/x-vertex"> 
+			attribute vec2 aPos;
+			attribute vec2 aTexCoord;
+			varying   vec2 tc;
+			void main(void) {
+				gl_Position = vec4(aPos, 0., 1.);
+				tc = aTexCoord;
+			}
+		</script> 
+
+		
+<script type="text/javascript">
+
+var timer, delay = 0, it = 10, frames = 0, time, animation,
+    n = 512, sampLoc;
+	
+var simulator = {
+	init: function(){
+	
+		var $ = function(name){
+			return document.getElementById(name);
+		}
+		
+		//Set up the GL objects
+		this.gl = wok.initGL(c, {
+			//set up logging
+			loadAllExtensions: true,
+			
+			info: function(msg){
+					$("logs").innerHTML += "\n\n-----------> INFO <-----------\n" + msg;
+				},
+			warn: function(msg){
+					$("logs").innerHTML += "\n\n-----------> WARN <-----------\n" + msg;
+				},
+			error: function(msg){
+					$("logs").innerHTML += "\n\n-----------> ERROR <-----------\n" + msg;
+				}
+		});
+
+		//Buffers to draw a fullscreenquad with the right texcoords
+		var pos_buffer = new this.gl.ArrayBuffer(this.gl.STATIC_DRAW, [
+			-1, -1, 
+			 1, -1, 
+			-1,  1, 
+			 1,  1,
+		]);
+		var texcoord_buffer = new this.gl.ArrayBuffer(this.gl.STATIC_DRAW, [
+			0, 0, 
+			1, 0,
+			0, 1, 
+			1, 1
+		]);
+
+		
+		//Shaders
+		this.forceProgram = new this.gl.ShaderProgram(
+			this.gl.Shader.fromElement($("shader-vs")),
+			this.gl.Shader.fromElement($("force-fs"))
+		).link().setAttributes({
+			aPos: pos_buffer,
+			aTexCoord: texcoord_buffer
+		}).setUniforms({
+			'c': 0.001*0.5*20
+		});
+		
+		this.advectProgram = new this.gl.ShaderProgram(
+			this.gl.Shader.fromElement($("shader-vs")),
+			this.gl.Shader.fromElement($("advec-fs"))
+		).link().setAttributes({
+			aPos: pos_buffer,
+			aTexCoord: texcoord_buffer
+		});
+		
+		this.jacobiProgram = new this.gl.ShaderProgram(
+			this.gl.Shader.fromElement($("shader-vs")),
+			this.gl.Shader.fromElement($("p-fs"))
+		).link().setAttributes({
+			aPos: pos_buffer,
+			aTexCoord: texcoord_buffer
+		});
+
+		this.divProgram = new this.gl.ShaderProgram(
+			this.gl.Shader.fromElement($("shader-vs")),
+			this.gl.Shader.fromElement($("div-fs"))
+		).link().setAttributes({
+			aPos: pos_buffer,
+			aTexCoord: texcoord_buffer
+		});
+		
+		this.showProgram = new this.gl.ShaderProgram(
+			this.gl.Shader.fromElement($("shader-vs")),
+			this.gl.Shader.fromElement($("shader-fs-show"))
+		).link().setAttributes({
+			aPos: pos_buffer,
+			aTexCoord: texcoord_buffer
+		});
+	   
+		//Set up the ping pong textures
+		this.texture = new this.gl.Texture();
+		this.texture1 = new this.gl.Texture();
+		this.reset();	
+		
+		this.fbo = new this.gl.FrameBuffer(n, n, {
+			color: this.texture
+		});
+ 	    this.fbo1 = new this.gl.FrameBuffer(n, n, {
+			color: this.texture1
+		});
+		
+		//Set up the dom elements
+		var self = this;
+		$("resetButton").onclick = function(){
+			self.reset();
+		};
+		$("runButton").onclick = function(){
+			self.running = !self.running;
+			$('runButton').value = (self.running ? "Stop" : "Run ");
+		};
+		$("betaInput").onchange = function(){
+			self.forceProgram.setUniforms({
+				c: 0.0005*$("betaInput").value.valueOf()
+			});
+		}
+		
+		
+		this.running = true;
+        timer = setInterval(fr, 500);
+	    time = new Date().getTime();
+	    this.anim();
+	},
+	
+	simAndDraw: function(){	
+
+		this.fbo1.renderTo();
+		this.forceProgram.use().setUniforms({
+			samp: this.texture
+		});
+		this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
+	 
+		this.fbo.renderTo();
+		this.advectProgram.use().setUniforms({
+			samp: this.texture1
+		});
+		this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
+	 
+		this.jacobiProgram.use();
+		for(var i = 0; i < it; i++){
+			this.fbo1.renderTo();
+			this.jacobiProgram.setUniforms({
+				samp: this.texture
+			});
+			this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
+		 
+			this.fbo.renderTo()
+			this.jacobiProgram.setUniforms({
+				samp: this.texture1
+			});
+			this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
+		}
+
+		//this.fbo1.renderTo();	 
+		this.divProgram.use().setUniforms({
+			samp: this.texture
+		});
+		this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
+
+		this.gl.screen.renderTo();
+		this.showProgram.use().setUniforms({
+			samp: this.texture1
+		});
+		this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
+		frames++;
+	},
+	
+	anim: function(){
+		if(this.running){
+			simulator.simAndDraw();
+		}
+	    if (delay == 0){
+			this.gl.utils.requestAnimFrame(function(){simulator.anim()});
+		}else{
+			var gl_ = gl
+			setTimeout(function(){gl_.utils.requestAnimFrame(simulator.anim)}, delay);
+		}
+	},
+
+	reset: function (){
+		this.pixelData = this.pixelData ||(function(){	
+			var T, pixels = [];
+			for(var i = 0; i<n; i++){
+				for(var j = 0; j<n; j++){
+					T = 0;
+					if (i>200 && i<300){
+						if (j>100 && j<240){
+							T=1;
+						}else if (j>260 && j<400){
+							T= -1;
+						}
+					}
+					pixels.push( 0, 0, T, 0 );
+				}
+			}
+			return pixels;
+		})();
+		this.texture.dataFromArray(this.pixelData, n, n, {format: "float"});
+		this.texture1.dataFromArray(this.pixelData, n, n, {format: "float"});
+		this.running = true;
+	}
+}
+
+
+
+function fr(){
+  var ti = new Date().getTime();
+  var fps = Math.round(1000*frames/(ti - time));
+  document.getElementById("framerate").value = fps;
+  frames = 0;  time = ti;
+}
+function setDelay(val) {
+  delay = parseInt(val);
+}
+function setIt(val) {
+  it = parseInt(val);
+}
+ 
+</script>
+ 
+		<style type="text/css"> 
+		  H1{ font-size: 120%; color: green}
+		  H2{ font-size: 100%; color: green}
+		  pre{ color: darkblue}
+		</style> 
+	</head> 
+	<body onload="simulator.init()"> 
+		<canvas id="c" width="512" height="512"></canvas> 
+		<br>
+		<button id="resetButton">Reset</button> 
+		<input id="runButton" type="button" value="Stop" > 
+		It<input size="1" value="10" onchange="setIt( this.value )"> 
+		&beta;<input size="2" value="20" id="betaInput"> 
+		delay<input size="1" value="0" onchange="setDelay( this.value )"> 
+		fps<input size="1" id="framerate"> 
+ 		<br>
+		Fluid dynamics. Cold and heavy fluid is blue and hot fluid is red. This script makes <i>2 It</i> iterations every time step to calculate pressure.
+        <p>LOG</p>
+        <textarea id="logs" style="width: 600px; height: 200px"></textarea>    
+</body> 
+</html> 
