@@ -14,7 +14,6 @@ wok.FrameBuffer = function(width, height){
         frameBuffer.attach(arguments[2]);
         
     return frameBuffer;
-
 };
 
 wok.FrameBuffer.prototype = {
@@ -39,6 +38,7 @@ wok.FrameBuffer.prototype = {
         if(object.isRenderBuffer){
             this.gl.framebufferRenderbuffer(this.gl.FRAMEBUFFER, this.gl.frameBufferAttachment[target], this.gl.RENDERBUFFER, object);
         }else{
+//            this.gl.TexUnitManager.deActivateTexture(this.gl.frameBufferAttachment[target]); //WOW that's fugly I may need a refactoring here
             this.gl.framebufferTexture2D(this.gl.FRAMEBUFFER, this.gl.frameBufferAttachment[target], this.gl.TEXTURE_2D, object, 0);
         }
 

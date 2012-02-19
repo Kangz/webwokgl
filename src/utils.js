@@ -32,7 +32,7 @@ wok.utils = {
         }
     },
     
-    requestAnimFrame: function(callback){
+    requestAnimFrame: function(){
         this.requestAnimationFrame = this.requestAnimationFrame||
                                 window.requestAnimationFrame ||
                                 window.webkitRequestAnimationFrame ||
@@ -40,7 +40,7 @@ wok.utils = {
                                 window.oRequestAnimationFrame ||
                                 window.msRequestAnimationFrame ||
                                 function(cb){window.setTimeout(function(){cb(Date.now())}, 1000/60);};
-        this.requestAnimationFrame(callback);
+        this.requestAnimationFrame.apply(window, arguments);
     }
 
 };

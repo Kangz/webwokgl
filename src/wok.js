@@ -35,6 +35,7 @@ var wok = {
     textureFormat: {},
     textureFormatArray: {},
     textureFilter: {},
+    textureWrapMode: {},
     //Store information about each opengl Type (size, uniform setter, type etc ...)
     glType: {},
     renderBufferStorage: {},
@@ -87,7 +88,7 @@ var wok = {
     is context-specific). 
     Wok's attribute are simply referenced, class are encapsulated in a special proxyClass so that
     this.gl points to the right context.  Modules are treated recursively.
-    */    
+    */
     extendModule: function(obj, module, context){
 
         //some modules will need the gl context
@@ -141,10 +142,17 @@ var wok = {
         this.setOptions({
             webGLFlipY: true
         });
-        
+		
+		this.extensions = this.getSupportedExtensions();
+		if(options['loadAllExtensions']){
+			for(var i in this.extensions){
+				this.loadExtension(this.extensions[i]);
+			}
+		}
+		
         //User-given options
         this.setOptions(options);
-
+		
         this.TexUnitManager = new wok.TexUnitManager(this);
 
         wok.input.createCanvasCallbacks(this, this.canvas);
@@ -186,6 +194,18 @@ var wok = {
         return this;
     },
     
+	loadExtension: function(extension){
+		if(!extension in this.extensions){
+			this.error("The " +  extension + " extension is not supported");
+		}
+		
+		var ext = this.getExtension(extension);
+		
+		for(var property in ext){
+			this[property] = ext[property];
+		}
+	},
+	
     //Build up some table so as to conveniently us opengl constants/types
     initConvenientTables: function(){
         this.glType[this.INT] = {
@@ -285,12 +305,17 @@ var wok = {
         //Todo check for the extension
         this.textureFormat["float"] = this.FLOAT;
 
-        this.textureFormatArray["ubyte"] = Uint8Array;
-        this.textureFormatArray["ushort4444"] = Uint16Array; //are these really needed ?
-        this.textureFormatArray["ushort5551"] = Uint16Array;
-        this.textureFormatArray["ushort565"] = Uint16Array;
+        this.textureFormatArray["ubyte"] = function(data){ return new Uint8Array(data)};
+        this.textureFormatArray["ushort4444"] = function(data){ return new Uint16Array(data)}; //are these really needed ?
+        this.textureFormatArray["ushort5551"] = function(data){ return new Uint16Array(data)};
+        this.textureFormatArray["ushort565"] = function(data){ return new Uint16Array(data)};
         //Todo check for the extension
-        this.textureFormatArray["float"] = Float32Array;     
+        this.textureFormatArray["float"] = function(data){ return new Float32Array(data)};
+
+        this.textureWrapMode["edge"] = this.CLAMP_TO_EDGE;
+        this.textureWrapMode["repeat"] = this.REPEAT;
+        this.textureWrapMode["mirroredRepeat"] = this.MIRRORED_REPEAT;
+
 
         this.textureFilter["linear"] = this.gl.LINEAR;
         this.textureFilter["nearest"] = this.gl.NEAREST;

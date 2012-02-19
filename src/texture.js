@@ -9,6 +9,10 @@ wok.Texture = function(src, options){
     texture.minFilter = this.gl.NEAREST;
     texture.magFilter = this.gl.NEAREST;
 
+    texture.wrapS = this.gl.REPEAT;
+    texture.wrapT = this.gl.REPEAT;
+
+	//What if there is option and no src ?
     if(src) texture.from(src, options);
 
     return texture;
@@ -30,6 +34,7 @@ wok.Texture.prototype = {
     //Binds the current texture
     bind: function(){
         if(this.gl.boundTexture !== this){
+			this.gl.TexUnitManager.notifyBeforeBind(this);
             this.gl.bindTexture(this.gl.TEXTURE_2D, this);
             this.gl.boundTexture = this;
         }
@@ -64,10 +69,10 @@ wok.Texture.prototype = {
     dataFromElement: function(element, optArg){
         var options = this.setupTexOptions(optArg || {});
         this.bind();
-        this.setOptions(options).setFilter();
+        this.setOptions(options);
         
         //FIXME: allow different internal formats ?
-        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, options["format"], element);        
+        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, options["gl_format"], element);        
         return this;
     },
     
@@ -75,9 +80,9 @@ wok.Texture.prototype = {
     dataFromArray: function(array, width, height, optArg){
         var options = this.setupTexOptions(optArg || {});
         this.bind();
-        this.setOptions(options).setFilter();
+        this.setOptions(options);
         
-        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, width, height, 0, this.gl.RGBA, options["format"], options["formatArray"](array));
+        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, width, height, 0, this.gl.RGBA, options["gl_format"], options["formatArray"](array));
         return this;
     },
 
@@ -85,23 +90,30 @@ wok.Texture.prototype = {
     emptyData: function(width, height, optArg){
         var options = this.setupTexOptions(optArg || {});
         this.bind();
-        this.setOptions(options).setFilter();
+        this.setOptions(options);
        
-        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, width, height, 0, this.gl.RGBA, options["format"], null);
+        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, width, height, 0, this.gl.RGBA, options["gl_format"], null);
         return this;
     },
 
     setupTexOptions: function(optArg){
-        optArg["format"] = this.gl.textureFormat[ ("format" in optArg ? optArg["format"] : "ubyte") ];
+        if(optArg["format"] == "float"){
+            optArg["magFilter"] = optArg["minFilter"] = "nearest";
+        }
+        optArg["gl_format"] = this.gl.textureFormat[ ("format" in optArg ? optArg["format"] : "ubyte") ];
+
         optArg["formatArray"] = this.gl.textureFormatArray[ ("format" in optArg ? optArg["format"] : "ubyte") ];
         return optArg;
     },
 
     //Sets the filter mode of the texture
-    setFilter: function(){
+    setFilterAndWrap: function(){
         this.bind();
         this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.magFilter);
         this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.minFilter);        
+
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.wrapS);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.wrapT);
     },
 
     //Set options using a table
@@ -110,9 +122,20 @@ wok.Texture.prototype = {
             this.magFilter = this.gl.textureFilter[options["magFilter"]];
         if("minFilter" in options)
             this.minFilter = this.gl.textureFilter[options["minFilter"]];
-            
+        if("wrap" in options)
+            this.wrapS = this.wrapT = this.gl.textureWrapMode[options["wrap"]];
+        if("wrapS" in options)
+            this.wrapS = this.gl.textureWrapMode[options["wrapS"]];
+        if("wrapT" in options)
+            this.wrapT = this.gl.textureWrapMode[options["wrapT"]];
+        this.setFilterAndWrap();
         return this;
     },
+    
+/*    renderTo: function(){
+        this.fbo = this.fbo || new this.gl.FrameBuffer(128, 128, {color: this});
+        this.fbo.renderTo(false);
+    },*/
     
     isTexture: function(){
         return true;
@@ -126,13 +149,14 @@ wok.TexUnitManager = function(gl){
     this.unitNumber = this.gl.getParameter(this.gl.MAX_TEXTURE_IMAGE_UNITS);
 
     this.count = 0;
+
     //Fill the Texture unit with no texture
     this.units = []
     for(var i=0; i<this.unitNumber; i++){
         this.units.push(null);
     }
 };
-//FIXME: what if a I bind a texture while I don't want to activate that texture ?
+
 wok.TexUnitManager.prototype = {
     activeTexture: function(texture){
 
@@ -162,5 +186,15 @@ wok.TexUnitManager.prototype = {
         texture.bind();
         
         return unit;
-    }
+    },
+	notifyBeforeBind: function(texture){
+        if(texture.texUnit >=0){
+			this.gl.activeTexture(this.gl.TEXTURE0 + texture.texUnit);
+        }else{
+			this.activeTexture(texture);
+			//Maybe we should make it have a smaller lastTimeActive so that it gets recycled quicker ?
+		}
+	}
 };
+
+

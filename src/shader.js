@@ -184,6 +184,8 @@ wok.ShaderProgram.prototype = {
             //Textures need to be bound to a texture unit before it can be used
             //And the value passed to the uniform is the n° of that unit
             //Here we find for each texture a unit and replace it directly in arrayArg
+			//FIXME: what if we set the uniform and draw way later ?
+			//TODO: store the texture somewhere and re activate it later
             if(typeInfo.type == "texture"){
                 for(var i=0; i<arrayArg.length; i++){
                     arrayArg[i] = arrayArg[i].activate();
