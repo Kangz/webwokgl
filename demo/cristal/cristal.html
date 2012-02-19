@@ -35,19 +35,36 @@
             precision highp float; //some drivers need this
 
             varying vec3 vWorldPosition;
-            varying vec3 vLightPosition;
-
-            uniform vec3 normal;
+            varying vec3 vNormal;
+			
+            uniform mat3 nMatrix;
             uniform vec3 color;
-            uniform vec3 planes[N_PLANES];
+			uniform vec3 lightPos;
+			
+            #if N_SYMPLANES > 0
+            uniform vec3 symPlanes[N_SYMPLANES];
+            #endif
+            #if N_ASYMPLANES > 0            
+            uniform vec3 asymPlanes[N_ASYMPLANES];
+            #endif
 
             void main(void){
-                for(int i=0; i<N_PLANES; i++){
-                    if(abs(dot(planes[i], vWorldPosition))>1.00001){
+                #if N_SYMPLANES > 0
+                for(int i=0; i<N_SYMPLANES; i++){
+                    if(abs(dot(symPlanes[i], vWorldPosition))>1.00001){
                         discard;
                     }
                 }
-                gl_FragColor = vec4(color * (max(dot(vec3(0.2, 0.4, 1.0), normal), 0.0)*0.8 +0.2), 1.0);
+                #endif
+                #if N_ASYMPLANES > 0
+                for(int i=0; i<N_ASYMPLANES; i++){
+                    if(dot(asymPlanes[i], vWorldPosition)>1.00001){
+                        discard;
+                    }
+                }
+                #endif
+             
+				gl_FragColor = vec4(color * (dot(vec3(lightPos), vNormal)*0.4 +0.6), 1.0); //Hack, I could not make te nMatrix to work...
             }
         </script>
 
@@ -57,18 +74,21 @@
             attribute vec2 aPosition;
       
             varying vec3 vWorldPosition;
-            varying vec3 vLightPosition;
+            varying vec3 vNormal;
 
+			uniform vec3 normal;
+            uniform mat3 nMatrix;
             uniform mat4 mMatrix;
-            uniform mat4 vpMatrix;
+            uniform mat4 vMatrix;
             uniform float planeZ;
-      
+    
             void main(void){
                 vec4 position = mMatrix * vec4(aPosition, planeZ, 1.0);
-                vWorldPosition = position.xyz;                
-                gl_Position = vpMatrix * position;
-                vLightPosition = gl_Position.xyz;
-            }
+                vWorldPosition = position.xyz;
+                gl_Position = vMatrix * position;
+
+				vNormal = normal;
+			}
         </script>
     </head>
 
@@ -83,7 +103,9 @@
             <br/>
             <input type="range" min="0.7" max="1.5" step="0.001" value="1.5" onchange="changeCoeff('r_dodecahedron', this);" id="r_dodecahedron-slider"> Rombic Dodecahedron (V and B)
             <br/>
-            Show the different slices with different colors <input type="checkbox" checked="checked" id="color-checkbox"> 
+            <input type="range" min="0.56" max="1.8" step="0.001" value="1.8" onchange="changeCoeff('tetrahedron', this);" id="tetrahedron-slider"> Tetrahedron (I and O)
+            <br/>
+            Show the different slices with different colors <input type="checkbox" checked="checked" id="color-checkbox" onchange="toggleColors();"> 
         </form>
         <p>LOG</p>
         <textarea id="logs" style="width: 600px; height: 200px"></textarea>        

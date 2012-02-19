@@ -5,9 +5,9 @@ var CristalViewer = function(canvas, polygonArg, options){
         this.gl = wok.initGL(canvas, {
 
             //Basic setup
-            clearColor: [0.08, 0.08, 0.2, 1.0],
+            clearColor: [0.16, 0.16, 0.4, 1.0],
             depthTest: true,
-            clearDepth: 10000,
+            clearDepth: 1000000,
 
             //set up logging
             info: function(msg){
@@ -28,20 +28,27 @@ var CristalViewer = function(canvas, polygonArg, options){
 
         //retrieve some args
         this.yaw = options["yaw"] ? options["yaw"] : 0.0;
+        this.updateOnMouseDrag = options["updateOnMouseDrag"] ? options["updateOnMouseDrag"] : true;
         this.pitch = options["pitch"] ? options["pitch"] : 0.0;
         this.polygonColors = options["polygonColors"] ? options["polygonColors"] : false;
         this.color = options["color"] ? options["color"] : [1.0, 0.5, 0.5];
 
         this.polygons = polygonArg;
 
-        var planeNumber = 0;
+        var symetricPlaneNumber = 0;
         for(polygon in this.polygons){
-            planeNumber += this.polygons[polygon].planeNumber;
+            symetricPlaneNumber += this.polygons[polygon].symetricPlaneNumber;
         }
-
+        var asymetricPlaneNumber = 0;
+        for(polygon in this.polygons){
+            asymetricPlaneNumber += this.polygons[polygon].asymetricPlaneNumber;
+        }
+        
         //Build the shader program from the 2 script elements and tell them the number of planes
         this.shaderProgram = new this.gl.ShaderProgram(
-            this.gl.Shader.fromElement($("#shader-fs")[0], {n_planes: planeNumber}),  //TODO do not depend on the markup ?
+            this.gl.Shader.fromElement($("#shader-fs")[0], {
+                n_symplanes: symetricPlaneNumber,
+                n_asymplanes: asymetricPlaneNumber}),
             this.gl.Shader.fromElement($("#shader-vs")[0])
         );
         //Creates the array used to draw one plane
@@ -57,9 +64,11 @@ var CristalViewer = function(canvas, polygonArg, options){
 
         var mouse = this.gl.mouse
 
+        var self = this;
+
         mouse.onOver = function(){
             var pos = mouse.pos;
-            viewer.lastMousePos = {"x": pos.x, "y": pos.y};
+            self.lastMousePos = {"x": pos.x, "y": pos.y};
         }
 
         mouse.onMove = function(x, y){
@@ -67,8 +76,11 @@ var CristalViewer = function(canvas, polygonArg, options){
                 var relx = viewer.lastMousePos.x - x;
                 var rely = viewer.lastMousePos.y - y;
                 
-                viewer.yaw += relx * 0.01;
-                viewer.pitch = wok.utils.clamp(rely * 0.01 + viewer.pitch, -Math.PI/2, Math.PI/2);
+                self.yaw += relx * 0.01;
+                self.pitch = wok.utils.clamp(rely * 0.01 + self.pitch, -Math.PI/2, Math.PI/2);
+                if(self.updateOnMouseDrag){
+                    self.update();
+                }
             }
             viewer.lastMousePos = {"x": x, "y": y};
         }
@@ -81,22 +93,24 @@ CristalViewer.prototype = {
 
         //Gather plane uniforms from all the polygons
         //And the minimum coeff
-        var plane_uniforms = [];
+        var plane_symetricUniforms = [];
+        var plane_asymetricUniforms = [];
         var min_coeff = 10000;
         for(polygon in this.polygons){
-            plane_uniforms = plane_uniforms.concat(this.polygons[polygon].uniform);
-            if(this.polygons[polygon].coeff < min_coeff){
+            plane_symetricUniforms = plane_symetricUniforms.concat(this.polygons[polygon].symetricUniform);
+            plane_asymetricUniforms = plane_asymetricUniforms.concat(this.polygons[polygon].asymetricUniform);
+            if(this.polygons[polygon].zoom && this.polygons[polygon].coeff < min_coeff){
                 min_coeff = this.polygons[polygon].coeff;
             }
         }
-
+        
         //Builds the view matrix (scale with 1/coeff so that things don't get too small)
-        var vpMatrix = mat4.create();
-        mat4.identity(vpMatrix);
-        mat4.scale(vpMatrix, [0.5,0.5,0.5]);
-        mat4.scale(vpMatrix, [1/min_coeff, 1/min_coeff, 1/min_coeff]);
-        mat4.rotateX(vpMatrix, this.pitch);
-        mat4.rotateY(vpMatrix, this.yaw);
+        var vMatrix = mat4.create();
+        mat4.identity(vMatrix);
+        mat4.scale(vMatrix, [0.5,0.5,0.5]);
+        mat4.scale(vMatrix, [1/min_coeff, 1/min_coeff, 1/min_coeff]);
+        mat4.rotateX(vMatrix, this.pitch);
+        mat4.rotateY(vMatrix, this.yaw);
 
 
         //Draws one polygon after the other
@@ -112,14 +126,28 @@ CristalViewer.prototype = {
                 var mMatrix = this.dirToTransform(dir);
                 mat4.rotateY(mMatrix, Math.PI/2);
 
+				var temp = mat4.create();  
+				mat4.identity(temp);
+				mat4.rotateX(temp, this.pitch);
+				mat4.rotateY(temp, this.yaw);
+				mat4.multiply(temp, mMatrix, temp);
+                mat4.rotateY(temp, Math.PI/2);
+	
+				var nMatrix = mat4.toMat3(temp);
+
+				console.log(nMatrix);
+	
                 this.shaderProgram.setAttributes({
                     "aPosition": this.planePositions
                 }).setUniforms({
                     "mMatrix": mMatrix,
-                    "vpMatrix": vpMatrix,
+                    "vMatrix": vMatrix,
+					"nMatrix": nMatrix,
                     "normal": dir,
+					"lightPos": [0.2, 0.4, 1.0],
                     "color": this.polygonColors ? polygon.color : this.color,
-                    "planes": plane_uniforms,
+                    "symPlanes": plane_symetricUniforms,
+                    "asymPlanes": plane_asymetricUniforms,
                     "planeZ": polygon.coeff
                 }).use();
 
@@ -152,25 +180,39 @@ CristalViewer.prototype = {
 //polygon.uniform is the data to be passed to the shader
 //polygon.coeff is d(planes, center)
 //polygon.directions is the normal of the different planes
-var Polygon = function(raw_data, color, coeff){
+var Polygon = function(raw_data, color, coeff, zoom){
+
+    this.zoom = zoom != undefined ? zoom : true;
 
     //default coeff to 1
     var coeff = coeff ? coeff : 1;
 
     this.color = color;
     this.raw_data = raw_data;
-    this.directions = []
+    this.symetricDirections = [];
+    this.asymetricDirections = [];
+    this.directions = [];
 
-    //Every polygon is symetric by the origin
-    //Or is it not ?
-    for(var i=0; i<raw_data.length; i++){
-        var dir = vec3.normalize(raw_data[i]);
-        this.directions.push(dir);
-        //vec3.negate(dir) returns dir on this specific function on my comp
-        this.directions.push([-dir[0], -dir[1], -dir[2]]);
+    //Do the thing for symetric polygons
+    if(raw_data.symetric){
+        for(var i=0; i<raw_data.symetric.length; i++){
+            var dir = vec3.normalize(raw_data.symetric[i]);
+            this.symetricDirections.push(dir);
+            this.directions.push([-dir[0], -dir[1], -dir[2]]);
+        }
     }
+    this.directions = this.directions.concat(this.symetricDirections);
+    this.symetricPlaneNumber = this.symetricDirections.length;
 
-    this.planeNumber = this.directions.length;
+    if(raw_data.asymetric){
+        for(var i=0; i<raw_data.asymetric.length; i++){
+            var dir = vec3.normalize(raw_data.asymetric[i]);
+            this.asymetricDirections.push(dir);
+        }
+    }
+    this.directions = this.directions.concat(this.asymetricDirections);
+    this.asymetricPlaneNumber = this.asymetricDirections.length;
+
 
     //Create the uniforms
     this.update(coeff);
@@ -180,14 +222,22 @@ Polygon.prototype = {
 
     //Updates the uniform with the distance to the center
     update: function(coeff){
-        var uniform = [];
+        var symetricUniform = [];
+        var asymetricUniform = [];
 
-        for(var i=0; i<this.directions.length; i+=2){
-            var dir = this.directions[i];
-            uniform = uniform.concat([dir[0]/coeff, dir[1]/coeff, dir[2]/coeff]);
+        for(var i=0; i<this.symetricDirections.length; i++){
+            var dir = this.symetricDirections[i];
+            symetricUniform = symetricUniform.concat([dir[0]/coeff, dir[1]/coeff, dir[2]/coeff]);
         }
+        this.symetricUniform = symetricUniform;
 
-        this.uniform = uniform;
+        for(var i=0; i<this.asymetricDirections.length; i++){
+            var dir = this.asymetricDirections[i];
+            asymetricUniform = asymetricUniform.concat([dir[0]/coeff, dir[1]/coeff, dir[2]/coeff]);
+        }
+        this.asymetricUniform = asymetricUniform;
+
+
         this.coeff = coeff;
 
         return this;
@@ -204,34 +254,50 @@ var planes_list = (function(){
     var dodeCos = Math.cos(dodeAngle);
 
     return {
-        octahedron: [
-            [1.0, 1.0, 1.0],
-            [1.0, 1.0, -1.0],
-            [1.0, -1.0, 1.0],
-            [1.0, -1.0, -1.0]
-        ],
+        octahedron: {
+            symetric: [
+                [1.0, 1.0, 1.0],
+                [1.0, 1.0, -1.0],
+                [1.0, -1.0, 1.0],
+                [1.0, -1.0, -1.0]
+            ]
+        },
         //Finally I've got the dodecahedron
-        dodecahedron: [
-            [0.0, dodeSin, dodeCos],
-            [0.0, -dodeSin, dodeCos],
-            [dodeSin, dodeCos, 0.0],
-            [-dodeSin, dodeCos, 0.0],
-            [dodeCos, 0.0, dodeSin],
-            [dodeCos, 0.0, -dodeSin],
-        ],
-        rhombic_dodecahedron: [
-            [0.0, 1.0, 1.0],
-            [0.0, -1.0, 1.0],
-            [1.0, 1.0, 0.0],
-            [-1.0, 1.0, 0.0],
-            [1.0, 0.0, 1.0],
-            [1.0, 0.0, -1.0],
-        ],
-        cube: [
-            [1.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0],
-            [0.0, 0.0, 1.0]
-        ]
+        dodecahedron: {
+            symetric: [
+                [0.0, dodeSin, dodeCos],
+                [0.0, -dodeSin, dodeCos],
+                [dodeSin, dodeCos, 0.0],
+                [-dodeSin, dodeCos, 0.0],
+                [dodeCos, 0.0, dodeSin],
+                [dodeCos, 0.0, -dodeSin],
+            ]
+        },
+        rhombic_dodecahedron: {
+            symetric: [
+                [0.0, 1.0, 1.0],
+                [0.0, -1.0, 1.0],
+                [1.0, 1.0, 0.0],
+                [-1.0, 1.0, 0.0],
+                [1.0, 0.0, 1.0],
+                [1.0, 0.0, -1.0],
+            ]
+        },
+        cube: {
+            symetric: [
+                [1.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0],
+                [0.0, 0.0, 1.0]
+            ]
+        },
+        tetrahedron: {
+            asymetric: [
+                [1.0, 1.0, 1.0],
+                [-1.0, -1.0, 1.0],
+                [-1.0, 1.0, -1.0],
+                [1.0, -1.0, -1.0]
+            ]
+        }
     };
 })();
 
