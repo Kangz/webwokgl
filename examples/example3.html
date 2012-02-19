@@ -1,0 +1,82 @@
+<html>
+    <head>
+        <title>Wok Example 2 : Textures</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+         
+        <script type="text/javascript" src="../lib/jquery.js"></script>
+         
+        <!-- Wok -->
+        
+        <script src="../lib/glMatrix.js" type="text/javascript"></script>
+        <script src="../src/wok.js" type="text/javascript"></script>
+        <script src="../src/options.js" type="text/javascript"></script>
+        <script src="../src/shader.js" type="text/javascript"></script>
+        <script src="../src/utils.js" type="text/javascript"></script>
+        <script src="../src/buffer.js" type="text/javascript"></script>
+        <script src="../src/texture.js" type="text/javascript"></script>
+        <script src="../src/framebuffer.js" type="text/javascript"></script>
+        <script src="../src/input.js" type="text/javascript"></script>
+
+        <!-- Example specific script -->
+
+        <script type="text/javascript" src="example3.js"></script>
+        
+        <script type="text/javascript">
+            $(document).ready(function(){
+                example.init();
+            });
+        </script>
+
+        <!-- Fragment shader program -->
+
+        <script id="metaball-fs" type="x-shader/x-fragment">
+            precision highp float; //some drivers need this
+            varying vec2 vPosition;
+            uniform vec2 centers[6];
+            uniform float threshold;
+
+            void main(void) {
+                float square_sum = 0.0;
+                
+                for(int i=0; i<6; i++){
+                    vec2 temp_vec = centers[i] - vPosition;
+                    square_sum += 1.0/max(0.001, dot(temp_vec, temp_vec)); 
+                }
+                if(square_sum < threshold){
+                    discard;
+                }
+                gl_FragColor = vec4(0.15, 0.3, 0.6, 1.0);
+            }
+        </script>
+
+        <script id="screen-fs" type="x-shader/x-fragment">
+            precision highp float; //some drivers need this
+            varying vec2 vPosition;
+            uniform sampler2D screen;
+
+            void main(void) { //make it nicer v that was for debug only
+                gl_FragColor = texture2D(screen, vec2(vPosition.s*0.5 + 0.5, vPosition.t*0.5 + 0.5));
+            }
+        </script>
+        
+        <!-- Vertex shader program -->
+    
+        <script id="generic-vs" type="x-shader/x-vertex">
+            attribute vec2 aPosition;      
+            varying vec2 vPosition;
+            
+            void main(void){
+                vPosition = aPosition;
+                gl_Position = vec4(aPosition, 0.0, 1.0);
+            }
+        </script>
+    </head>
+
+    <body>
+        <canvas id="canvas" width="512" height="512">
+            Your browser doesn't appear to support the HTML5 <code>&lt;canvas&gt;</code> element.
+        </canvas>
+        <p>LOG</p>
+        <textarea id="logs" style="width: 600px; height: 200px"></textarea>        
+    </body>
+</html>
