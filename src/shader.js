@@ -40,6 +40,7 @@ wok.ShaderProgram.prototype = {
 
         if (!this.gl.getProgramParameter(this, this.gl.LINK_STATUS)) {
             this.gl.error("Unable to initialize the shader program: " + this.gl.getProgramInfoLog(this));
+            return this;
         }
         this.computeVariables();
 
@@ -247,6 +248,7 @@ wok.Shader = function(shaderSource, type, macros){
     
     if(!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)){
         this.gl.error("An error occurred compiling the shaders: " + this.gl.getShaderInfoLog(shader));
+        return shader;
     }
 
     this.gl.info("Succesfully compiled the shader");
